@@ -22,26 +22,27 @@ use crate::fees::FeeModel;
 use crate::solana::SolanaManager;
 use crate::latency::LatencyModel;
 use crate::types::Side;
-use std::time::Duration;
+// use std::time::Duration; // Unused
+use colored::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n=======================================================");
-    println!(" 🦈 PolyShark v1.0 (Hackathon Release)");
-    println!("   - Permissioned Autonomous Agent");
-    println!("   - Powered by MetaMask Advanced Permissions (ERC-7715)");
-    println!("   - Multi-Chain Ready: Polymarket (Polygon) + Solana");
-    println!("=======================================================\n");
+    println!("\n{}", "=======================================================".bright_blue());
+    println!(" {} {}", "🦈".cyan(), "PolyShark v1.0 (Hackathon Release)".bold().cyan());
+    println!("   - {}", "Permissioned Autonomous Agent".white());
+    println!("   - Powered by {}", "MetaMask Advanced Permissions (ERC-7715)".yellow());
+    println!("   - Multi-Chain Ready: {} + {}", "Polymarket".purple(), "Solana".green());
+    println!("{}", "=======================================================\n".bright_blue());
 
-    println!("🔐 [Init] Security Core: MetaMask Smart Account Adapter... Connected.");
-    println!("📡 [Init] Market Data:   Envio Indexer (Mock)...           Connected.");
+    println!("{} Security Core: MetaMask Smart Account Adapter... {}", "🔐 [Init]".bold().yellow(), "Connected.".green());
+    println!("{} Market Data:   Envio Indexer (Mock)...           {}", "📡 [Init]".bold().yellow(), "Connected.".green());
 
     // Solana Check
-    print!("☀️ [Init] Solana Devnet:  Connecting... ");
+    print!("{} Solana Devnet:  Connecting... ", "☀️ [Init]".bold().yellow());
     let sol_manager = SolanaManager::new();
     match sol_manager.check_connection() {
-        Ok(v) => println!("Connected! (v{})", v),
-        Err(_) => println!("Skipped (Offline)"),
+        Ok(v) => println!("{}", format!("Connected! (v{})", v).green()),
+        Err(_) => println!("{}", "Skipped (Offline)".red()),
     }
 
     // Initialize generic fee model (can be updated per market if needed)
@@ -54,10 +55,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let latency_model = LatencyModel::new(50, 0.001); // 50ms delay, 0.1% adverse selection std
     let execution_engine = ExecutionEngine::new(fee_model, latency_model);
 
-    println!("💸 [Init] Daily Allowance: ${:.2} USDC (Enforced by ERC-7715)", wallet.daily_limit);
+    println!("{} Daily Allowance: ${:.2} USDC (Enforced by ERC-7715)", "💸 [Init]".bold().yellow(), wallet.daily_limit);
 
     loop {
-        println!("\n📡 Fetching markets from Envio (Gamma API)...");
+        println!("\n{}", "📡 Fetching markets from Envio (Gamma API)...".cyan());
         let mut markets = match market_provider.fetch_markets().await {
             Ok(m) => m,
             Err(e) => {
