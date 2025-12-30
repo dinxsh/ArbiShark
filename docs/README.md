@@ -1,16 +1,3 @@
-# 🦈 PolyShark (Hackathon Edition)
-
-> **🏆 MetaMask Hackathon Submission: Permissioned On-Chain Agent**
->
-> This project demonstrates a **fully fully autonomous trading agent** that uses **MetaMask Advanced Permissions (ERC-7715)** to operate safely within user-defined daily limits.
-> 
-> **Run the Demo:**
-> ```bash
-> cargo run
-> ```
-
----
-
 # 🦈 PolyShark
 
 > *"If markets contradict themselves, eat the contradiction."*
@@ -21,7 +8,7 @@
 
 ## 🎯 What It Does
 
-- Uses a **simulated USDC wallet** (starting at `$1,000`)
+- Uses a **simulated USDC wallet** (starting at `$10.00` daily limit)
 - Simulates **linked markets** with realistic price drift
 - Detects **logical arbitrage opportunities** (e.g., when YES + NO ≠ 1)
 - Executes **buy + sell** pairs to capture the spread
@@ -81,20 +68,29 @@ PolyShark models **real execution dynamics**:
 
 ## 📚 Documentation
 
+### Core Concepts
+- [**context.md**](./context.md) — Project background & "Why PolyShark?"
 - [**maths.md**](./maths.md) — Mathematical foundations of arbitrage detection
-- [**implementation.md**](./implementation.md) — Step-by-step implementation guide
-- [**polymarket.md**](./polymarket.md) — Polymarket API reference & integration
+- [**formulaes.md**](./formulaes.md) — Detailed financial formulas (Kelly Criterion, etc.)
+- [**polymarket.md**](./polymarket.md) — Polymarket API reference
+
+### Technical Specifications
+- [**spec.md**](./spec.md) — Full generic system specification
+- [**metamask/v1.md**](./metamask/v1.md) — **Hackathon Architecture: ERC-7715 Integration**
+- [**implementation.md**](./implementation.md) — Implementation log
 
 ---
 
-## 📈 Roadmap
+## 📈 Roadmap & Status
 
-1. Multi-market constraints (A + B + C = 1)
-2. Random latency injection
-3. Fee modeling refinement
-4. Monte Carlo simulation runs
-5. Market dependency graph
-6. Solana devnet deployment
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **Multi-market constraints** | ✅ Done | `constraint.rs` (Generalized) |
+| **Random latency injection** | ✅ Done | `latency.rs` (50ms base + drift) |
+| **Fee modeling refinement** | ✅ Done | `fee_calibrator.rs` (P95 logic) |
+| **Monte Carlo simulation** | ✅ Done | `simulation.rs` |
+| **Market dependency graph** | ✅ Done | Covered by generalized constraints |
+| Solana devnet deployment | ⏳ Pending | Future work |
 
 ---
 
