@@ -1,78 +1,115 @@
 use crate::types::{Market, OrderBook, PriceLevel};
 use std::error::Error;
+use serde_json::Value;
 
 #[allow(dead_code)]
 pub struct MarketDataProvider {
     client: reqwest::Client,
-    envio_url: String,
+    gamma_url: String,
+    clob_url: String,
 }
 
 impl MarketDataProvider {
-    pub fn new(envio_url: &str) -> Self {
+    pub fn new(_envio_url: &str) -> Self {
         Self {
             client: reqwest::Client::new(),
-            envio_url: envio_url.to_string(),
+            gamma_url: "https://gamma-api.polymarket.com/events?limit=20&active=true&closed=false".to_string(),
+            clob_url: "https://clob.polymarket.com/book".to_string(),
         }
     }
 
+    /// Fetch all active markets from Gamma API
     pub async fn fetch_markets(&self) -> Result<Vec<Market>, Box<dyn Error>> {
-        // In a real implementation, this would query the Envio GraphQL endpoint
-        // let query = "{ markets { id, question, outcomes, ... } }";
-        // let resp = self.client.post(&self.envio_url).json(&query).send().await?;
-        
-        // Return mock data for demonstration
-        println!("🌐 Fetching market data from Envio Indexer at {}...", self.envio_url);
-        
-        Ok(vec![
-            Market {
-                id: "0x123".to_string(),
-                question: "Will ETH be above $4000 on Jan 1?".to_string(),
-                slug: "eth-jan-1".to_string(),
-                outcomes: vec!["Yes".to_string(), "No".to_string()],
-                outcome_prices: vec![0.45, 0.55],
-                clob_token_ids: vec!["t1".to_string(), "t2".to_string()],
-                best_bid: Some(0.44),
-                best_ask: Some(0.46),
-                maker_base_fee: 0,
-                taker_base_fee: 200, // 2%
-                liquidity: 100000.0,
-                volume_24hr: 50000.0,
-                active: true,
-                accepting_orders: true,
-            },
-            Market {
-                id: "0x456".to_string(),
-                question: "Will BTC be above $100k in 2024?".to_string(),
-                slug: "btc-2024".to_string(),
-                outcomes: vec!["Yes".to_string(), "No".to_string()],
-                outcome_prices: vec![0.40, 0.40], // Sum 0.80 -> 20% arb!
-                clob_token_ids: vec!["t3".to_string(), "t4".to_string()],
-                best_bid: Some(0.39),
-                best_ask: Some(0.41),
-                maker_base_fee: 0,
-                taker_base_fee: 200,
-                liquidity: 500000.0,
-                volume_24hr: 120000.0,
-                active: true,
-                accepting_orders: true,
+        println!("🌐 Fetching LIVE market data from Gamma API...");
+        let resp = self.client.get(&self.gamma_url).send().await?.text().await?;
+        let json: Value = serde_json::from_str(&resp)?;
+
+        let mut markets = Vec::new();
+
+        if let Some(events) = json.as_array() {
+            for event in events {
+                if let Some(event_markets) = event["markets"].as_array() {
+                    for m in event_markets {
+                        // Extract basic fields
+                        let id = m["id"].as_str().unwrap_or("").to_string();
+                        let question = m["question"].as_str().unwrap_or("").to_string();
+                        let slug = event["slug"].as_str().unwrap_or("").to_string();
+                        
+                        // Extract outcomes
+                        let outcomes: Vec<String> = m["outcomes"].as_array()
+                            .map(|arr| arr.iter().map(|v| v.as_str().unwrap_or("").to_string()).collect())
+                            .unwrap_or_default();
+
+                        // Extract CLOB Token IDs (Critical)
+                        // Note: Gamma API returns this as a STRINGIFIED JSON array, e.g. "[\"123\", \"456\"]"
+                        let clob_token_ids: Vec<String> = if let Some(s) = m["clobTokenIds"].as_str() {
+                             serde_json::from_str(s).unwrap_or_default()
+                        } else {
+                            // Fallback if it somehow is an actual array (future proofing)
+                            m["clobTokenIds"].as_array()
+                                .map(|arr| arr.iter().map(|v| v.as_str().unwrap_or("").to_string()).collect())
+                                .unwrap_or_default()
+                        };
+
+                        // Debug: Print what we found
+                        // println!("DEBUG: Found market '{}' with {} tokens", slug, clob_token_ids.len());
+
+                        // Skip if incomplete execution data
+                        if clob_token_ids.len() < 2 { 
+                            // println!("DEBUG: Skipping {} (Not enough tokens)", slug);
+                            continue; 
+                        }
+
+                        markets.push(Market {
+                            id,
+                            question,
+                            slug,
+                            outcomes,
+                            outcome_prices: vec![0.5, 0.5], // Will be updated by book fetch
+                            clob_token_ids,
+                            best_bid: None,
+                            best_ask: None,
+                            maker_base_fee: 0,
+                            taker_base_fee: 200, // Standard 2%
+                            liquidity: 0.0,      // Updated lazily
+                            volume_24hr: 0.0,
+                            active: true,
+                            accepting_orders: true,
+                        });
+                    }
+                }
             }
-        ])
+        }
+        
+        Ok(markets)
     }
 
-    /// Fetch order book for a market
+    /// Fetch order book for a market from CLOB API
     pub async fn fetch_order_book(&self, token_id: &str) -> Result<OrderBook, Box<dyn Error>> {
-        // Mock order book
+        let url = format!("{}?token_id={}", self.clob_url, token_id);
+        let resp = self.client.get(&url).send().await?.text().await?;
+        let json: Value = serde_json::from_str(&resp)?;
+
+        // Helper to parse price/size strings
+        let parse_level = |level: &Value| -> Option<PriceLevel> {
+            let p = level["price"].as_str()?.parse::<f64>().ok()?;
+            let s = level["size"].as_str()?.parse::<f64>().ok()?;
+            Some(PriceLevel { price: p, size: s })
+        };
+
+        let bids: Vec<PriceLevel> = json["bids"].as_array()
+            .map(|arr| arr.iter().filter_map(parse_level).collect())
+            .unwrap_or_default();
+            
+        let asks: Vec<PriceLevel> = json["asks"].as_array()
+            .map(|arr| arr.iter().filter_map(parse_level).collect())
+            .unwrap_or_default();
+
         Ok(OrderBook {
             token_id: token_id.to_string(),
-            bids: vec![
-                PriceLevel { price: 0.44, size: 100.0 },
-                PriceLevel { price: 0.43, size: 500.0 },
-            ],
-            asks: vec![
-                PriceLevel { price: 0.41, size: 200.0 },
-                PriceLevel { price: 0.42, size: 300.0 },
-            ],
-            timestamp: 1234567890,
+            bids,
+            asks,
+            timestamp: 0, // Not provided by snapshot endpoint cleanly
         })
     }
 }

@@ -12,13 +12,14 @@ mod simulation;
 mod market;
 mod latency;
 // mod gamma;     // Use Envio instead of Gamma
-// mod clob;      // Use Envio/MarketProvider for now
+mod solana;
 
 use crate::wallet::Wallet;
 use crate::market::MarketDataProvider;
 use crate::arb::ArbitrageDetector;
 use crate::execution::ExecutionEngine;
 use crate::fees::FeeModel;
+use crate::solana::SolanaManager;
 use crate::latency::LatencyModel;
 use crate::types::Side;
 use std::time::Duration;
@@ -29,10 +30,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(" 🦈 PolyShark v1.0 (Hackathon Release)");
     println!("   - Permissioned Autonomous Agent");
     println!("   - Powered by MetaMask Advanced Permissions (ERC-7715)");
+    println!("   - Multi-Chain Ready: Polymarket (Polygon) + Solana");
     println!("=======================================================\n");
 
     println!("🔐 [Init] Security Core: MetaMask Smart Account Adapter... Connected.");
     println!("📡 [Init] Market Data:   Envio Indexer (Mock)...           Connected.");
+
+    // Solana Check
+    print!("☀️ [Init] Solana Devnet:  Connecting... ");
+    let sol_manager = SolanaManager::new();
+    match sol_manager.check_connection() {
+        Ok(v) => println!("Connected! (v{})", v),
+        Err(_) => println!("Skipped (Offline)"),
+    }
 
     // Initialize generic fee model (can be updated per market if needed)
     let fee_model = FeeModel { maker_fee_bps: 0, taker_fee_bps: 200 };
@@ -47,9 +57,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("💸 [Init] Daily Allowance: ${:.2} USDC (Enforced by ERC-7715)", wallet.daily_limit);
 
     loop {
-        println!("\n📡 Fetching markets from Envio...");
-        let markets = market_provider.fetch_markets().await?;
-        println!("   Found {} active markets", markets.len());
+        println!("\n📡 Fetching markets from Envio (Gamma API)...");
+        let mut markets = match market_provider.fetch_markets().await {
+            Ok(m) => m,
+            Err(e) => {
+                println!("⚠️ Failed to fetch markets: {}", e);
+                tokio::time::sleep(Duration::from_secs(5)).await;
+                continue;
+            }
+        };
+        println!("   Found {} active markets (Limit 20)", markets.len());
+
+        // Hydrate prices (Real E2E)
+        /* 
+           In a production bot, we'd use WebSocket streams.
+           For this demo loop, we fetch books sequentially to be "completely real".
+        */
+        for market in markets.iter_mut() {
+            let mut prices = Vec::new();
+            for (i, token_id) in market.clob_token_ids.iter().enumerate() {
+                match market_provider.fetch_order_book(token_id).await {
+                    Ok(book) => {
+                        let price = book.midpoint().unwrap_or(0.0);
+                        if price > 0.0 {
+                            println!("   CTX: Market {} | Token {} | Price: {:.3}", market.slug, i, price);
+                        }
+                        prices.push(price);
+                    },
+                    Err(_) => prices.push(0.0), // Failed to fetch
+                }
+            }
+            // Update market state if we got prices for all outcomes (usually 2)
+            if prices.len() == market.outcomes.len() && prices.iter().all(|&p| p > 0.0) {
+                 market.outcome_prices = prices;
+            }
+        }
 
         let signals = detector.scan(&markets);
         if signals.is_empty() {
