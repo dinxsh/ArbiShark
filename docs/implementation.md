@@ -358,4 +358,30 @@ async fn calibrate_parameters(client: &PolymarketClient) -> ExecutionParameters 
 2. ✅ **Latency injection** — Random execution delays & price drift (`latency.rs`)
 3. ✅ **Monte Carlo** — Simulation engine for validation (`simulation.rs`)
 4. ✅ **Market graph** — Generalized constraints logic
-5. ⬜ **Solana integration** — Future scope
+5. ✅ **ERC-7715 Integration** — MetaMask Advanced Permissions ([metamask/v1.md](./metamask/v1.md))
+6. ⬜ **Solana integration** — Future scope
+
+---
+
+## Quick Reference: Execution Flow
+
+```
+1. Read Market            → Fetch from Polymarket/Envio
+2. Fetch YES & NO Books   → GET /book
+3. Compute YES_ask + NO_ask
+4. If < 1 - fees          → Arbitrage opportunity
+5. Check ERC-7715 allowance
+6. Create ArbitrageSignal
+7. Send 2 orders (Buy YES, Buy NO)
+8. Receive ExecutionResult
+9. Track PnL
+```
+
+---
+
+## Related Documentation
+
+- [**math.md**](./math.md) — All formulas and calculations
+- [**spec.md**](./spec.md) — Technical specification with full code
+- [**polymarket.md**](./polymarket.md) — API reference
+- [**metamask/v1.md**](./metamask/v1.md) — ERC-7715 architecture

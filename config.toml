@@ -1,0 +1,30 @@
+# PolyShark Configuration
+
+[permission]
+# ERC-7715 Daily Spend Permission
+daily_limit_usdc = 10.0
+duration_days = 30
+token = "USDC"
+
+[trading]
+# Arbitrage detection thresholds
+min_spread_threshold = 0.02      # 2% minimum spread to trigger signal
+min_profit_threshold = 0.10      # $0.10 minimum expected profit
+trade_size = 5.0                 # Fixed trade size per leg (USDC)
+max_position_value = 50.0        # Maximum total position value
+
+[timing]
+poll_interval_secs = 5           # How often to poll for opportunities
+position_timeout_secs = 3600     # 1 hour max hold time
+latency_base_ms = 50             # Base latency model
+adverse_selection_std = 0.001   # 0.1% adverse move std
+
+[api]
+gamma_url = "https://gamma-api.polymarket.com/events"
+clob_url = "https://clob.polymarket.com"
+websocket_url = "wss://ws-subscriptions-clob.polymarket.com/ws"
+market_limit = 20                # Max markets to fetch
+
+[logging]
+level = "info"                   # debug, info, warn, error
+colorize = true

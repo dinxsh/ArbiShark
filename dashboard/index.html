@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦈 PolyShark Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+
+        .status-badge.connected {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .status-badge.disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .card h3 {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+        }
+
+        .card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .card .value.money::before {
+            content: '$';
+            color: #22c55e;
+        }
+
+        .card .subtext {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .progress-container {
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+
+        .trades-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .trade-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .trade-item .trade-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .trade-item .trade-market {
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .trade-item .trade-time {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .trade-item .trade-amount {
+            font-weight: 600;
+        }
+
+        .trade-item .trade-amount.positive {
+            color: #22c55e;
+        }
+
+        .trade-item .trade-amount.negative {
+            color: #ef4444;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #6366f1);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .permission-card {
+            grid-column: span 2;
+        }
+
+        .permission-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .permission-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .permission-item label {
+            display: block;
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .permission-item span {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .permission-card {
+                grid-column: span 1;
+            }
+            .permission-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🦈 PolyShark Dashboard</h1>
+            <p>Permissioned Autonomous Trading Agent</p>
+            <div id="connection-status" class="status-badge disconnected">
+                <span class="dot">●</span>
+                <span id="status-text">Disconnected</span>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Permission Card -->
+            <div class="card permission-card">
+                <h3>ERC-7715 Permission Status</h3>
+                <div class="permission-details">
+                    <div class="permission-item">
+                        <label>Daily Limit</label>
+                        <span id="daily-limit">$10.00</span>
+                    </div>
+                    <div class="permission-item">
+                        <label>Spent Today</label>
+                        <span id="spent-today">$0.00</span>
+                    </div>
+                    <div class="permission-item">
+                        <label>Remaining</label>
+                        <span id="remaining" style="color: #22c55e;">$10.00</span>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div id="allowance-progress" class="progress-fill" style="width: 100%;"></div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button id="btn-connect" class="btn btn-primary">Connect MetaMask</button>
+                    <button id="btn-revoke" class="btn btn-danger" disabled>Revoke Permission</button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="card">
+                <h3>Total Trades</h3>
+                <div id="total-trades" class="value">0</div>
+                <div class="subtext">Since permission granted</div>
+            </div>
+
+            <div class="card">
+                <h3>Win Rate</h3>
+                <div id="win-rate" class="value">0%</div>
+                <div class="subtext">Profitable trades</div>
+            </div>
+
+            <div class="card">
+                <h3>Total PnL</h3>
+                <div id="total-pnl" class="value money">0.00</div>
+                <div class="subtext">Net profit/loss</div>
+            </div>
+
+            <div class="card">
+                <h3>Open Positions</h3>
+                <div id="open-positions" class="value">0</div>
+                <div class="subtext">Active trades</div>
+            </div>
+        </div>
+
+        <!-- Recent Trades -->
+        <div class="card">
+            <h3>Recent Trades</h3>
+            <div id="trades-list" class="trades-list">
+                <div class="trade-item">
+                    <div class="trade-info">
+                        <span class="trade-market">Waiting for trades...</span>
+                        <span class="trade-time">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated state (would be fetched from API in production)
+        let state = {
+            connected: false,
+            permissionGranted: false,
+            dailyLimit: 10.00,
+            spentToday: 0.00,
+            totalTrades: 0,
+            winRate: 0,
+            totalPnl: 0.00,
+            openPositions: 0,
+            trades: []
+        };
+
+        // DOM Elements
+        const statusBadge = document.getElementById('connection-status');
+        const statusText = document.getElementById('status-text');
+        const dailyLimit = document.getElementById('daily-limit');
+        const spentToday = document.getElementById('spent-today');
+        const remaining = document.getElementById('remaining');
+        const progress = document.getElementById('allowance-progress');
+        const btnConnect = document.getElementById('btn-connect');
+        const btnRevoke = document.getElementById('btn-revoke');
+        const totalTrades = document.getElementById('total-trades');
+        const winRate = document.getElementById('win-rate');
+        const totalPnl = document.getElementById('total-pnl');
+        const openPositions = document.getElementById('open-positions');
+        const tradesList = document.getElementById('trades-list');
+
+        // Update UI
+        function updateUI() {
+            // Connection status
+            if (state.connected && state.permissionGranted) {
+                statusBadge.className = 'status-badge connected';
+                statusText.textContent = 'Permission Active';
+                btnConnect.textContent = 'Connected ✓';
+                btnConnect.disabled = true;
+                btnRevoke.disabled = false;
+            } else if (state.connected) {
+                statusBadge.className = 'status-badge connected';
+                statusText.textContent = 'Connected';
+                btnConnect.textContent = 'Grant Permission';
+                btnRevoke.disabled = true;
+            } else {
+                statusBadge.className = 'status-badge disconnected';
+                statusText.textContent = 'Disconnected';
+                btnConnect.textContent = 'Connect MetaMask';
+                btnConnect.disabled = false;
+                btnRevoke.disabled = true;
+            }
+
+            // Allowance
+            dailyLimit.textContent = `$${state.dailyLimit.toFixed(2)}`;
+            spentToday.textContent = `$${state.spentToday.toFixed(2)}`;
+            const remainingValue = state.dailyLimit - state.spentToday;
+            remaining.textContent = `$${remainingValue.toFixed(2)}`;
+
+            // Progress bar
+            const percent = (remainingValue / state.dailyLimit) * 100;
+            progress.style.width = `${percent}%`;
+            progress.className = 'progress-fill';
+            if (percent < 25) progress.classList.add('danger');
+            else if (percent < 50) progress.classList.add('warning');
+
+            // Stats
+            totalTrades.textContent = state.totalTrades;
+            winRate.textContent = `${state.winRate}%`;
+            totalPnl.textContent = state.totalPnl.toFixed(2);
+            totalPnl.style.color = state.totalPnl >= 0 ? '#22c55e' : '#ef4444';
+            openPositions.textContent = state.openPositions;
+
+            // Trades list
+            if (state.trades.length > 0) {
+                tradesList.innerHTML = state.trades.map(t => `
+                    <div class="trade-item">
+                        <div class="trade-info">
+                            <span class="trade-market">${t.market}</span>
+                            <span class="trade-time">${t.time}</span>
+                        </div>
+                        <span class="trade-amount ${t.pnl >= 0 ? 'positive' : 'negative'}">
+                            ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}
+                        </span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Simulate connection
+        btnConnect.addEventListener('click', async () => {
+            if (!state.connected) {
+                btnConnect.textContent = 'Connecting...';
+                await new Promise(r => setTimeout(r, 1000));
+                state.connected = true;
+                btnConnect.textContent = 'Grant Permission';
+            } else if (!state.permissionGranted) {
+                btnConnect.textContent = 'Requesting...';
+                await new Promise(r => setTimeout(r, 1500));
+                state.permissionGranted = true;
+            }
+            updateUI();
+        });
+
+        // Simulate revoke
+        btnRevoke.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to revoke the permission?')) {
+                state.permissionGranted = false;
+                state.spentToday = 0;
+                updateUI();
+            }
+        });
+
+        // Simulate live updates
+        setInterval(() => {
+            if (state.permissionGranted && Math.random() > 0.7) {
+                // Simulate a trade
+                const tradeAmount = Math.random() * 2;
+                const pnl = (Math.random() - 0.4) * 0.5;
+                
+                if (state.spentToday + tradeAmount <= state.dailyLimit) {
+                    state.spentToday += tradeAmount;
+                    state.totalTrades++;
+                    state.totalPnl += pnl;
+                    if (pnl > 0) state.winRate = Math.round((state.winRate * (state.totalTrades - 1) + 100) / state.totalTrades);
+                    
+                    state.trades.unshift({
+                        market: `Market ${Math.floor(Math.random() * 1000)}`,
+                        time: new Date().toLocaleTimeString(),
+                        pnl: pnl
+                    });
+                    
+                    if (state.trades.length > 10) state.trades.pop();
+                    updateUI();
+                }
+            }
+        }, 3000);
+
+        // Initial render
+        updateUI();
+    </script>
+</body>
+</html>

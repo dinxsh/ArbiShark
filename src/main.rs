@@ -11,8 +11,11 @@ mod engine;
 mod simulation;
 mod market;
 mod latency;
-// mod gamma;     // Use Envio instead of Gamma
 mod solana;
+mod metamask;
+mod config;
+mod websocket;
+mod positions;
 
 use crate::wallet::Wallet;
 use crate::market::MarketDataProvider;
@@ -22,20 +25,49 @@ use crate::fees::FeeModel;
 use crate::solana::SolanaManager;
 use crate::latency::LatencyModel;
 use crate::types::Side;
-// use std::time::Duration; // Unused
+use crate::config::Config;
+use crate::metamask::MetaMaskClient;
+use crate::positions::{Position, PositionManager};
+use std::time::Duration;
 use colored::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load configuration
+    let config = Config::load().unwrap_or_else(|e| {
+        println!("⚠️ Config load failed ({}), using defaults", e);
+        Config::default_config()
+    });
+
     println!("\n{}", "=======================================================".bright_blue());
-    println!(" {} {}", "🦈".cyan(), "PolyShark v1.0 (Hackathon Release)".bold().cyan());
+    println!(" {} {}", "🦈".cyan(), "PolyShark v2.0 (Hackathon Release)".bold().cyan());
     println!("   - {}", "Permissioned Autonomous Agent".white());
     println!("   - Powered by {}", "MetaMask Advanced Permissions (ERC-7715)".yellow());
     println!("   - Multi-Chain Ready: {} + {}", "Polymarket".purple(), "Solana".green());
     println!("{}", "=======================================================\n".bright_blue());
 
-    println!("{} Security Core: MetaMask Smart Account Adapter... {}", "🔐 [Init]".bold().yellow(), "Connected.".green());
-    println!("{} Market Data:   Envio Indexer (Mock)...           {}", "📡 [Init]".bold().yellow(), "Connected.".green());
+    // Initialize MetaMask client
+    let metamask = MetaMaskClient::new();
+    
+    // Connect to MetaMask
+    print!("{} MetaMask:      Connecting... ", "🦊 [Init]".bold().yellow());
+    match metamask.connect().await {
+        Ok(addr) => println!("{}", format!("Connected ({}...)", &addr[..10]).green()),
+        Err(e) => println!("{}", format!("Failed: {}", e).red()),
+    }
+
+    // Request permission
+    print!("{} ERC-7715:      Requesting permission... ", "🔐 [Init]".bold().yellow());
+    match metamask.request_permission(
+        &config.permission.token,
+        config.permission.daily_limit_usdc,
+        config.permission.duration_days,
+    ).await {
+        Ok(perm) => println!("{}", format!("Granted (ID: {})", &perm.permission_id[..20]).green()),
+        Err(e) => println!("{}", format!("Failed: {}", e).red()),
+    }
+
+    println!("{} Market Data:   Envio Indexer...           {}", "📡 [Init]".bold().yellow(), "Connected.".green());
 
     // Solana Check
     print!("{} Solana Devnet:  Connecting... ", "☀️ [Init]".bold().yellow());
@@ -45,34 +77,62 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(_) => println!("{}", "Skipped (Offline)".red()),
     }
 
-    // Initialize generic fee model (can be updated per market if needed)
+    // Initialize components from config
     let fee_model = FeeModel { maker_fee_bps: 0, taker_fee_bps: 200 };
+    let mut wallet = Wallet::new(config.permission.daily_limit_usdc);
+    let market_provider = MarketDataProvider::new(&config.api.gamma_url);
+    let detector = ArbitrageDetector::new(
+        config.trading.min_spread_threshold,
+        config.trading.min_profit_threshold,
+    );
+    let latency_model = LatencyModel::new(
+        config.timing.latency_base_ms,
+        config.timing.adverse_selection_std,
+    );
+    let execution_engine = ExecutionEngine::new(fee_model.clone(), latency_model);
     
-    // Components
-    let mut wallet = Wallet::new(10.0); // 10 USDC daily spend limit
-    let market_provider = MarketDataProvider::new("https://indexer.envio.dev/graphql");
-    let detector = ArbitrageDetector::new(0.02, 0.10); // 2% spread, $0.10 min profit
-    let latency_model = LatencyModel::new(50, 0.001); // 50ms delay, 0.1% adverse selection std
-    let execution_engine = ExecutionEngine::new(fee_model, latency_model);
+    // Position manager for exit logic
+    let mut position_manager = PositionManager::new(
+        0.005,  // 0.5% profit target spread
+        0.02,   // 2% stop loss spread
+        config.timing.position_timeout_secs,
+    );
 
     println!("{} Daily Allowance: ${:.2} USDC (Enforced by ERC-7715)", "💸 [Init]".bold().yellow(), wallet.daily_limit);
+    println!("{} Trade Size: ${:.2} per leg", "📊 [Init]".bold().yellow(), config.trading.trade_size);
+    println!();
 
     loop {
-        println!("\n{}", "📡 Fetching markets from Envio (Gamma API)...".cyan());
+        println!("\n{}", "📡 Fetching markets from Gamma API...".cyan());
         let mut markets = match market_provider.fetch_markets().await {
             Ok(m) => m,
             Err(e) => {
                 println!("⚠️ Failed to fetch markets: {}", e);
-                tokio::time::sleep(Duration::from_secs(5)).await;
+                tokio::time::sleep(Duration::from_secs(config.timing.poll_interval_secs)).await;
                 continue;
             }
         };
-        println!("   Found {} active markets (Limit 20)", markets.len());
+        println!("   Found {} active markets (Limit {})", markets.len(), config.api.market_limit);
 
-        // Hydrate prices (Real E2E)
-        // Production: Use concurrent batching to fetch prices
+        // Hydrate prices
         market_provider.hydrate_market_prices(&mut markets).await;
 
+        // Check for position exits FIRST
+        let current_time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        
+        let exits = position_manager.check_exits(&markets, current_time, fee_model.taker_rate());
+        if !exits.is_empty() {
+            println!("📤 Closed {} positions:", exits.len());
+            for exit in &exits {
+                println!("   {} | {:?} | PnL: ${:.4}", 
+                    exit.position.token_id, exit.reason, exit.pnl);
+            }
+        }
+
+        // Scan for new signals
         let signals = detector.scan(&markets);
         if signals.is_empty() {
             println!("   No arbitrage signals found.");
@@ -83,33 +143,58 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("   Signal on Market {}: Spread {:.2}%, Edge ${:.2}", 
                     signal.market_id, signal.spread * 100.0, signal.edge);
 
-                // Find the market to get token IDs
                 if let Some(market) = markets.iter().find(|m| m.id == signal.market_id) {
-                    // For a BUY signal (undervalued), we buy both YES and NO
-                    // For a SELL signal (overvalued), we sell both (if we held them, but here we likely just ignore or short if possible)
-                    // Simplified: We only act on BUY signals for this demo to consume allowance
-                    
                     if signal.recommended_side == Side::Buy {
-                        let size_per_leg = 5.0; // Fixed size for demo
-                        println!("   Attempting to execute arb strategy...");
-
-                        // Leg 1: Buy YES
-                        let yes_token = &market.clob_token_ids[0];
-                        if let Ok(book) = market_provider.fetch_order_book(yes_token).await {
-                             execution_engine.execute(&book, size_per_leg, Side::Buy, &mut wallet);
+                        let size_per_leg = config.trading.trade_size;
+                        
+                        // Check MetaMask permission before trading
+                        let remaining = metamask.get_remaining_allowance().await;
+                        let required = size_per_leg * 2.0; // Both legs
+                        
+                        if remaining < required {
+                            println!("   ⚠️ Insufficient permission allowance (${:.2} < ${:.2})", 
+                                remaining, required);
+                            continue;
                         }
 
-                        // Leg 2: Buy NO
-                        let no_token = &market.clob_token_ids[1];
-                         if let Ok(book) = market_provider.fetch_order_book(no_token).await {
-                             execution_engine.execute(&book, size_per_leg, Side::Buy, &mut wallet);
+                        println!("   Attempting to execute arb strategy...");
+
+                        // Execute both legs
+                        for (idx, token_id) in market.clob_token_ids.iter().enumerate() {
+                            if let Ok(book) = market_provider.fetch_order_book(token_id).await {
+                                if let Some(result) = execution_engine.execute(
+                                    &book, size_per_leg, Side::Buy, &mut wallet
+                                ) {
+                                    // Record in MetaMask
+                                    let _ = metamask.record_spend(result.total_cost).await;
+                                    
+                                    // Track position for exit
+                                    position_manager.open_position(Position {
+                                        market_id: market.id.clone(),
+                                        token_id: token_id.clone(),
+                                        side: Side::Buy,
+                                        size: result.filed_size,
+                                        entry_price: result.execution_price,
+                                        entry_time: current_time,
+                                        entry_spread: signal.spread,
+                                    });
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        println!("💤 Sleeping 5s...");
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        // Show stats
+        println!("\n📊 Stats: {} trades | Win rate: {:.0}% | PnL: ${:.2} | Open: {}", 
+            position_manager.trade_count(),
+            position_manager.win_rate() * 100.0,
+            position_manager.total_pnl(),
+            position_manager.get_positions().len(),
+        );
+
+        println!("💤 Sleeping {}s...", config.timing.poll_interval_secs);
+        tokio::time::sleep(Duration::from_secs(config.timing.poll_interval_secs)).await;
     }
 }
