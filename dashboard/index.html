@@ -1111,9 +1111,29 @@
         setInterval(() => {
             // Simulate Envio updates
             state.envio.delay = Math.floor(100 + Math.random() * 200);
-            state.envio.lastUpdate = new Date();
 
-            // Simulate trades when permission is active
+            // Randomly increment block height (Polygon ~2s block time)
+            if (Math.random() > 0.5) {
+                state.envio.blockHeight++;
+            }
+
+            // Simulate occasional latency spikes or errors for demo
+            if (Math.random() > 0.98) {
+                // Rare spike
+                state.envio.delay += Math.floor(Math.random() * 500);
+            }
+
+            // Safety Gate Logic
+            if (state.envio.delay > 5000 || state.envio.errors >= 3) {
+                if (state.agentStatus === 'RUNNING') {
+                    state.agentStatus = 'SAFE_MODE';
+                }
+            } else if (state.agentStatus === 'SAFE_MODE' && state.permissionGranted) {
+                // Recover if healthy
+                state.agentStatus = 'RUNNING';
+            }
+
+            // Simulate trades when permission is active and healthy
             if (state.permissionGranted && state.agentStatus === 'RUNNING' && Math.random() > 0.7) {
                 const tradeAmount = Math.random() * 2;
                 const pnl = (Math.random() - 0.4) * 0.5;
