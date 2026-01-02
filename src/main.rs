@@ -16,6 +16,7 @@ mod metamask;
 mod config;
 mod websocket;
 mod positions;
+mod api;
 
 use crate::wallet::Wallet;
 use crate::market::MarketDataProvider;
@@ -29,6 +30,8 @@ use crate::config::Config;
 use crate::metamask::MetaMaskClient;
 use crate::positions::{Position, PositionManager};
 use std::time::Duration;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use colored::*;
 
 #[tokio::main]
@@ -44,28 +47,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   - {}", "Permissioned Autonomous Agent".white());
     println!("   - Powered by {}", "MetaMask Advanced Permissions (ERC-7715)".yellow());
     println!("   - Multi-Chain Ready: {} + {}", "Polymarket".purple(), "Solana".green());
+    println!("   - Hybrid DApp: {}", "Enabled (API Port 3030)".purple());
     println!("{}", "=======================================================\n".bright_blue());
 
-    // Initialize MetaMask client
-    let metamask = MetaMaskClient::new();
+    // Initialize Components (Shared State)
+    let metamask = Arc::new(MetaMaskClient::new());
     
-    // Connect to MetaMask
-    print!("{} MetaMask:      Connecting... ", "🦊 [Init]".bold().yellow());
-    match metamask.connect().await {
-        Ok(addr) => println!("{}", format!("Connected ({}...)", &addr[..10]).green()),
-        Err(e) => println!("{}", format!("Failed: {}", e).red()),
-    }
+    // Position manager for exit logic (Shared)
+    let position_manager = Arc::new(RwLock::new(PositionManager::new(
+        0.005,  // 0.5% profit target spread
+        0.02,   // 2% stop loss spread
+        config.timing.position_timeout_secs,
+    )));
 
-    // Request permission
-    print!("{} ERC-7715:      Requesting permission... ", "🔐 [Init]".bold().yellow());
-    match metamask.request_permission(
-        &config.permission.token,
-        config.permission.daily_limit_usdc,
-        config.permission.duration_days,
-    ).await {
-        Ok(perm) => println!("{}", format!("Granted (ID: {})", &perm.permission_id[..20]).green()),
-        Err(e) => println!("{}", format!("Failed: {}", e).red()),
-    }
+    // 🚀 Start API Server
+    let api_state = api::ApiState {
+        metamask: metamask.clone(),
+        position_manager: position_manager.clone(),
+    };
+    
+    tokio::spawn(async move {
+        api::start_server(api_state).await;
+    });
 
     println!("{} Market Data:   Envio Indexer...           {}", "📡 [Init]".bold().yellow(), "Connected.".green());
 
@@ -91,18 +94,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let execution_engine = ExecutionEngine::new(fee_model.clone(), latency_model);
     
-    // Position manager for exit logic
-    let mut position_manager = PositionManager::new(
-        0.005,  // 0.5% profit target spread
-        0.02,   // 2% stop loss spread
-        config.timing.position_timeout_secs,
-    );
-
     println!("{} Daily Allowance: ${:.2} USDC (Enforced by ERC-7715)", "💸 [Init]".bold().yellow(), wallet.daily_limit);
     println!("{} Trade Size: ${:.2} per leg", "📊 [Init]".bold().yellow(), config.trading.trade_size);
     println!();
+    println!("⏳ Waiting for MetaMask permission via Dashboard...");
 
     loop {
+        // Wait for active permission if not present
+        if !metamask.has_valid_permission().await {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            continue;
+        }
+
         println!("\n{}", "📡 Fetching markets from Gamma API...".cyan());
         let mut markets = match market_provider.fetch_markets().await {
             Ok(m) => m,
@@ -123,7 +126,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap()
             .as_secs();
         
-        let exits = position_manager.check_exits(&markets, current_time, fee_model.taker_rate());
+        // Lock position manager for updates
+        let mut exits = Vec::new(); // Placeholder to avoid holding lock too long if logic was complex
+        {
+            let mut pm = position_manager.write().await;
+            exits = pm.check_exits(&markets, current_time, fee_model.taker_rate());
+        }
+
         if !exits.is_empty() {
             println!("📤 Closed {} positions:", exits.len());
             for exit in &exits {
@@ -149,7 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         
                         // Check MetaMask permission before trading
                         let remaining = metamask.get_remaining_allowance().await;
-                        let required = size_per_leg * 2.0; // Both legs
+                        let required = size_per_leg * 2.0;
                         
                         if remaining < required {
                             println!("   ⚠️ Insufficient permission allowance (${:.2} < ${:.2})", 
@@ -159,17 +168,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         println!("   Attempting to execute arb strategy...");
 
-                        // Execute both legs
                         for (idx, token_id) in market.clob_token_ids.iter().enumerate() {
                             if let Ok(book) = market_provider.fetch_order_book(token_id).await {
                                 if let Some(result) = execution_engine.execute(
                                     &book, size_per_leg, Side::Buy, &mut wallet
                                 ) {
-                                    // Record in MetaMask
                                     let _ = metamask.record_spend(result.total_cost).await;
                                     
-                                    // Track position for exit
-                                    position_manager.open_position(Position {
+                                    let mut pm = position_manager.write().await;
+                                    pm.open_position(Position {
                                         market_id: market.id.clone(),
                                         token_id: token_id.clone(),
                                         side: Side::Buy,
@@ -187,12 +194,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // Show stats
-        println!("\n📊 Stats: {} trades | Win rate: {:.0}% | PnL: ${:.2} | Open: {}", 
-            position_manager.trade_count(),
-            position_manager.win_rate() * 100.0,
-            position_manager.total_pnl(),
-            position_manager.get_positions().len(),
-        );
+        {
+            let pm = position_manager.read().await;
+            println!("\n📊 Stats: {} trades | Win rate: {:.0}% | PnL: ${:.2} | Open: {}", 
+                pm.trade_count(),
+                pm.win_rate() * 100.0,
+                pm.total_pnl(),
+                pm.get_positions().len(),
+            );
+        }
 
         println!("💤 Sleeping {}s...", config.timing.poll_interval_secs);
         tokio::time::sleep(Duration::from_secs(config.timing.poll_interval_secs)).await;

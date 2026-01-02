@@ -21,9 +21,11 @@ pub struct Position {
 #[derive(Debug, Clone)]
 pub enum ExitReason {
     MeanReversion,      // Spread normalized
+    #[allow(dead_code)]
     ProfitTarget,       // Hit profit target
     StopLoss,           // Hit stop loss
     Timeout,            // Position held too long
+    #[allow(dead_code)]
     Manual,             // Manual close
 }
 
@@ -35,6 +37,7 @@ pub struct ExitResult {
     pub exit_time: u64,
     pub reason: ExitReason,
     pub pnl: f64,
+    #[allow(dead_code)]
     pub fees: f64,
 }
 
@@ -77,6 +80,7 @@ impl PositionManager {
     }
 
     /// Get position by token_id
+    #[allow(dead_code)]
     pub fn get_position(&self, token_id: &str) -> Option<&Position> {
         self.positions.get(token_id)
     }
@@ -154,6 +158,7 @@ impl PositionManager {
     }
 
     /// Force close a position
+    #[allow(dead_code)]
     pub fn close_position(&mut self, token_id: &str, exit_price: f64, fee_rate: f64) -> Option<ExitResult> {
         if let Some(position) = self.positions.remove(token_id) {
             let current_time = std::time::SystemTime::now()

@@ -37,6 +37,7 @@ pub enum WsMessage {
 }
 
 /// Subscription request
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct SubscribeRequest {
     #[serde(rename = "type")]
@@ -46,6 +47,7 @@ struct SubscribeRequest {
 }
 
 /// WebSocket connection status
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum WsStatus {
     Disconnected,
@@ -56,6 +58,7 @@ pub enum WsStatus {
 }
 
 /// Price cache updated by WebSocket
+#[allow(dead_code)]
 #[derive(Debug, Clone, Default)]
 pub struct PriceCache {
     /// Map of token_id -> latest price
@@ -65,6 +68,7 @@ pub struct PriceCache {
 }
 
 /// WebSocket client for real-time Polymarket data
+#[allow(dead_code)]
 pub struct WebSocketClient {
     url: String,
     status: Arc<RwLock<WsStatus>>,
@@ -74,6 +78,7 @@ pub struct WebSocketClient {
 }
 
 impl WebSocketClient {
+    #[allow(dead_code)]
     pub fn new(url: &str) -> Self {
         let (tx, _) = broadcast::channel(1000);
         Self {
@@ -85,21 +90,25 @@ impl WebSocketClient {
     }
 
     /// Get current connection status
+    #[allow(dead_code)]
     pub async fn get_status(&self) -> WsStatus {
         self.status.read().await.clone()
     }
 
     /// Get a receiver for price updates
+    #[allow(dead_code)]
     pub fn subscribe(&self) -> broadcast::Receiver<WsMessage> {
         self.tx.subscribe()
     }
 
     /// Get current price from cache
+    #[allow(dead_code)]
     pub async fn get_price(&self, token_id: &str) -> Option<f64> {
         self.price_cache.read().await.prices.get(token_id).copied()
     }
 
     /// Connect and start streaming
+    #[allow(dead_code)]
     pub async fn connect(&self, market_ids: Vec<String>) -> Result<(), WsError> {
         *self.status.write().await = WsStatus::Connecting;
         

@@ -154,6 +154,13 @@ impl MetaMaskClient {
         }
     }
 
+    /// Set permission from external source (API)
+    pub async fn set_permission(&self, grant: PermissionGrant) {
+        *self.permission.write().await = Some(grant.clone());
+        *self.status.write().await = ConnectionStatus::PermissionGranted;
+        println!("✅ [MetaMask] Permission updated via API: {}", grant.permission_id);
+    }
+
     /// Connect to MetaMask wallet
     /// 
     /// In production, this would use window.ethereum or Snap RPC
