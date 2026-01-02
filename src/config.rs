@@ -13,6 +13,10 @@ pub struct Config {
     pub timing: TimingConfig,
     pub api: ApiConfig,
     pub logging: LoggingConfig,
+    #[serde(default)]
+    pub strategy: StrategyConfig,
+    #[serde(default)]
+    pub safety: SafetyConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -50,6 +54,57 @@ pub struct ApiConfig {
 pub struct LoggingConfig {
     pub level: String,
     pub colorize: bool,
+}
+
+/// Strategy configuration for adaptive trading
+#[derive(Debug, Deserialize, Clone)]
+pub struct StrategyConfig {
+    /// Threshold for conservative mode (below this %)
+    pub conservative_threshold: f64,
+    /// Threshold for aggressive mode (above this %)
+    pub aggressive_threshold: f64,
+    /// Minimum edge required in conservative mode
+    pub conservative_min_edge: f64,
+    /// Minimum edge required in normal mode
+    pub normal_min_edge: f64,
+    /// Minimum edge required in aggressive mode
+    pub aggressive_min_edge: f64,
+}
+
+impl Default for StrategyConfig {
+    fn default() -> Self {
+        Self {
+            conservative_threshold: 0.30,
+            aggressive_threshold: 0.70,
+            conservative_min_edge: 0.05,
+            normal_min_edge: 0.02,
+            aggressive_min_edge: 0.01,
+        }
+    }
+}
+
+/// Safety configuration for failure handling
+#[derive(Debug, Deserialize, Clone)]
+pub struct SafetyConfig {
+    /// Maximum data delay (ms) before suspending trading
+    pub max_data_delay_ms: u64,
+    /// Maximum consecutive API failures before safe mode
+    pub max_consecutive_failures: u32,
+    /// Cooldown period (seconds) in safe mode
+    pub safe_mode_cooldown_secs: u64,
+    /// Assume zero allowance if permission query fails
+    pub assume_zero_on_perm_error: bool,
+}
+
+impl Default for SafetyConfig {
+    fn default() -> Self {
+        Self {
+            max_data_delay_ms: 5000,
+            max_consecutive_failures: 3,
+            safe_mode_cooldown_secs: 300,
+            assume_zero_on_perm_error: true,
+        }
+    }
 }
 
 impl Config {
@@ -97,6 +152,8 @@ impl Config {
                 level: "info".to_string(),
                 colorize: true,
             },
+            strategy: StrategyConfig::default(),
+            safety: SafetyConfig::default(),
         }
     }
 }

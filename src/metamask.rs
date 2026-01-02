@@ -30,6 +30,31 @@ pub enum ConnectionStatus {
     PermissionDenied,
 }
 
+/// Strategy mode based on remaining allowance
+/// Adapts trading behavior to available resources
+#[derive(Debug, Clone, PartialEq)]
+pub enum StrategyMode {
+    /// < 30% allowance remaining - only high-edge trades
+    Conservative,
+    /// 30-70% allowance - normal trading
+    Normal,
+    /// > 70% allowance - more frequent trades
+    Aggressive,
+}
+
+/// Agent operational status
+#[derive(Debug, Clone, PartialEq)]
+pub enum AgentStatus {
+    /// Agent is idle, not trading
+    Idle,
+    /// Agent is actively trading
+    Running,
+    /// Agent entered safe mode due to errors
+    SafeMode,
+    /// Permission has expired
+    PermissionExpired,
+}
+
 /// MetaMask Smart Account Client
 /// 
 /// Handles ERC-7715 permission lifecycle:
@@ -86,6 +111,47 @@ impl MetaMaskClient {
     /// Get current permission grant
     pub async fn get_permission(&self) -> Option<PermissionGrant> {
         self.permission.read().await.clone()
+    }
+
+    /// Get current strategy mode based on remaining allowance
+    /// 
+    /// - Conservative: < 30% remaining (high-edge trades only)
+    /// - Normal: 30-70% remaining (standard trading)
+    /// - Aggressive: > 70% remaining (more frequent trades)
+    pub async fn get_strategy_mode(&self) -> StrategyMode {
+        let perm = self.permission.read().await;
+        match &*perm {
+            Some(p) => {
+                let remaining = (p.daily_limit - p.spent_today).max(0.0);
+                let percent = remaining / p.daily_limit;
+                
+                if percent < 0.30 {
+                    StrategyMode::Conservative
+                } else if percent > 0.70 {
+                    StrategyMode::Aggressive
+                } else {
+                    StrategyMode::Normal
+                }
+            }
+            None => StrategyMode::Normal,
+        }
+    }
+
+    /// Get current agent status
+    pub async fn get_agent_status(&self) -> AgentStatus {
+        let perm = self.permission.read().await;
+        match &*perm {
+            Some(p) => {
+                if p.revoked {
+                    AgentStatus::Idle
+                } else if p.expires_at < Self::current_timestamp() {
+                    AgentStatus::PermissionExpired
+                } else {
+                    AgentStatus::Running
+                }
+            }
+            None => AgentStatus::Idle,
+        }
     }
 
     /// Connect to MetaMask wallet

@@ -6,6 +6,19 @@
 
 ---
 
+## 🎯 TL;DR for Judges
+
+| What Makes PolyShark Special |
+|------------------------------|
+| 🔐 **ERC-7715 Permission System** — Cryptographically enforced daily USDC limits, not just trust |
+| 📡 **Envio-Powered Data** — Low-latency HyperIndex enables safe, real-time automation |
+| 🤖 **Zero-Popup Trading** — Once granted, trades execute autonomously without wallet confirmations |
+| 🛡️ **Adaptive Safety** — Strategy modes adjust behavior based on remaining allowance |
+
+> **[🎬 Demo Video](#)** | **[🌐 Live Dashboard](./dashboard/index.html)**
+
+---
+
 ## 🏆 Hackathon Highlights
 
 | Feature | Implementation |
@@ -55,7 +68,36 @@ src/
 
 ---
 
-## 📊 Permission Specification
+## � Why Envio Matters for Safe Automation
+
+PolyShark uses **Envio HyperIndex** as its market data backbone. This isn't just a data source—it's what enables *safe* autonomous trading:
+
+| Benefit | Why It Matters |
+|---------|----------------|
+| **Low Latency** | ~150ms index delay means the agent sees near-real-time state |
+| **Reliability** | Decoupled from Polymarket API rate limits and downtime |
+| **Replay Capability** | Historical data for backtesting and validation |
+| **Type Safety** | GraphQL schema prevents malformed queries |
+
+### Example Query
+
+```graphql
+query GetMarketState($conditionId: String!) {
+  Market(where: { conditionId: { _eq: $conditionId } }) {
+    question
+    outcomes
+    outcomePrices
+    volume
+    liquidity
+    lastTradePrice
+    updatedAt
+  }
+}
+```
+
+> The dashboard shows live Envio health metrics including index delay and connection status.
+
+## �📊 Permission Specification
 
 PolyShark requests the following permission:
 

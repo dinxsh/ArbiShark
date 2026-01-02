@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🦈 PolyShark Dashboard</title>
+    <meta name="description" content="PolyShark - Permission-safe autonomous trading agent using MetaMask ERC-7715 Advanced Permissions">
     <style>
         * {
             margin: 0;
@@ -11,15 +12,31 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a3e;
+            --bg-tertiary: #0d1b2a;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #e0e0e0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-purple: #7c3aed;
+            --accent-blue: #00d4ff;
+        }
+
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
             min-height: 100vh;
-            color: #e0e0e0;
+            color: var(--text-primary);
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
         }
@@ -28,23 +45,32 @@
             text-align: center;
             margin-bottom: 2rem;
             padding: 1.5rem;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--glass-bg);
             border-radius: 16px;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
         }
 
         header h1 {
             font-size: 2.5rem;
-            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), #f472b6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 0.5rem;
         }
 
         header p {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 1rem;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
         }
 
         .status-badge {
@@ -55,19 +81,71 @@
             border-radius: 20px;
             font-size: 0.875rem;
             font-weight: 500;
-            margin-top: 1rem;
         }
 
         .status-badge.connected {
             background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            color: var(--accent-green);
             border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
         .status-badge.disconnected {
             background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            color: var(--accent-red);
             border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status-badge.warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-badge.info {
+            background: rgba(124, 58, 237, 0.2);
+            color: var(--accent-purple);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+
+        /* Agent Status */
+        .agent-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+
+        .agent-status.running {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .agent-status.safe-mode {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .agent-status.expired {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .agent-status.idle {
+            background: rgba(100, 116, 139, 0.2);
+            color: var(--text-muted);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .grid {
@@ -77,16 +155,26 @@
             margin-bottom: 2rem;
         }
 
+        .grid-2col {
+            grid-template-columns: 1fr 1fr;
+        }
+
         .card {
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--glass-bg);
             border-radius: 16px;
             padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
             backdrop-filter: blur(10px);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
 
         .card h3 {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 0.875rem;
             font-weight: 500;
             text-transform: uppercase;
@@ -102,13 +190,119 @@
 
         .card .value.money::before {
             content: '$';
-            color: #22c55e;
+            color: var(--accent-green);
         }
 
         .card .subtext {
-            color: #64748b;
+            color: var(--text-muted);
             font-size: 0.875rem;
             margin-top: 0.5rem;
+        }
+
+        /* Permission Configuration */
+        .permission-config {
+            grid-column: span 2;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .config-item {
+            text-align: center;
+        }
+
+        .config-item label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .config-item select,
+        .config-item input[type="range"] {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .config-item select:focus,
+        .config-item input:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+
+        .config-item select option {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .slider-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-green);
+            margin-top: 0.5rem;
+        }
+
+        /* Range slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--accent-purple), #6366f1);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+        }
+
+        /* Permission Center */
+        .permission-center {
+            grid-column: span 2;
+        }
+
+        .permission-details {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .permission-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .permission-item label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .permission-item span {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
         }
 
         .progress-container {
@@ -124,19 +318,190 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #22c55e, #16a34a);
+            background: linear-gradient(90deg, var(--accent-green), #16a34a);
             border-radius: 4px;
             transition: width 0.3s ease;
         }
 
         .progress-fill.warning {
-            background: linear-gradient(90deg, #f59e0b, #d97706);
+            background: linear-gradient(90deg, var(--accent-yellow), #d97706);
         }
 
         .progress-fill.danger {
-            background: linear-gradient(90deg, #ef4444, #dc2626);
+            background: linear-gradient(90deg, var(--accent-red), #dc2626);
         }
 
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), #6366f1);
+            color: #fff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Dry Run Toggle */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle.active {
+            background: var(--accent-purple);
+        }
+
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle.active .toggle-knob {
+            transform: translateX(24px);
+        }
+
+        .toggle-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Envio Health */
+        .envio-health {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .envio-health .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: blink 1s infinite;
+        }
+
+        .envio-health .dot.delayed {
+            background: var(--accent-yellow);
+        }
+
+        .envio-health .dot.offline {
+            background: var(--accent-red);
+            animation: none;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .envio-info {
+            flex: 1;
+        }
+
+        .envio-info .title {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .envio-info .metrics {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Strategy Mode */
+        .strategy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .strategy-badge.conservative {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .strategy-badge.normal {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .strategy-badge.aggressive {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* Trades List */
         .trades-list {
             max-height: 300px;
             overflow-y: auto;
@@ -164,7 +529,7 @@
 
         .trade-item .trade-time {
             font-size: 0.75rem;
-            color: #64748b;
+            color: var(--text-muted);
         }
 
         .trade-item .trade-amount {
@@ -172,84 +537,73 @@
         }
 
         .trade-item .trade-amount.positive {
-            color: #22c55e;
+            color: var(--accent-green);
         }
 
         .trade-item .trade-amount.negative {
-            color: #ef4444;
+            color: var(--accent-red);
         }
 
-        .btn {
-            padding: 0.75rem 1.5rem;
+        /* JSON Config Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-primary);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .modal pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
             border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
+            overflow-x: auto;
             font-size: 0.875rem;
+            color: var(--accent-green);
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #7c3aed, #6366f1);
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-        }
-
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .btn-danger:hover {
-            background: rgba(239, 68, 68, 0.3);
-        }
-
-        .permission-card {
-            grid-column: span 2;
-        }
-
-        .permission-details {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
+        .modal .close-btn {
             margin-top: 1rem;
         }
 
-        .permission-item {
-            text-align: center;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
-        }
-
-        .permission-item label {
-            display: block;
-            color: #64748b;
-            font-size: 0.75rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .permission-item span {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .controls {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
         @media (max-width: 768px) {
-            .permission-card {
+            .permission-config,
+            .permission-center {
                 grid-column: span 1;
             }
+            .config-grid,
+            .permission-details {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .config-grid,
             .permission-details {
                 grid-template-columns: 1fr;
             }
@@ -260,18 +614,71 @@
     <div class="container">
         <header>
             <h1>🦈 PolyShark Dashboard</h1>
-            <p>Permissioned Autonomous Trading Agent</p>
-            <div id="connection-status" class="status-badge disconnected">
-                <span class="dot">●</span>
-                <span id="status-text">Disconnected</span>
+            <p>Permissioned Autonomous Trading Agent • ERC-7715 Advanced Permissions</p>
+            <div class="status-row">
+                <div id="connection-status" class="status-badge disconnected">
+                    <span class="dot">●</span>
+                    <span id="status-text">Disconnected</span>
+                </div>
+                <div id="agent-status" class="agent-status idle">
+                    <span>⏸️</span>
+                    <span id="agent-status-text">IDLE</span>
+                </div>
+                <div id="strategy-mode" class="strategy-badge normal">
+                    <span>📊</span>
+                    <span id="strategy-text">NORMAL</span>
+                </div>
             </div>
         </header>
 
+        <!-- Permission Configuration -->
         <div class="grid">
-            <!-- Permission Card -->
-            <div class="card permission-card">
-                <h3>ERC-7715 Permission Status</h3>
+            <div class="card permission-config">
+                <h3>⚙️ Permission Configuration</h3>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label>Daily Limit (USDC)</label>
+                        <input type="range" id="daily-limit-slider" min="5" max="50" step="5" value="10">
+                        <div class="slider-value">$<span id="limit-display">10</span></div>
+                    </div>
+                    <div class="config-item">
+                        <label>Duration</label>
+                        <select id="duration-select">
+                            <option value="7">7 Days</option>
+                            <option value="30" selected>30 Days</option>
+                            <option value="90">90 Days</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label>Token</label>
+                        <select id="token-select">
+                            <option value="USDC" selected>USDC</option>
+                            <option value="USDT">USDT</option>
+                            <option value="DAI">DAI</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                    <div class="toggle-container">
+                        <div id="dry-run-toggle" class="toggle">
+                            <div class="toggle-knob"></div>
+                        </div>
+                        <span class="toggle-label">Dry Run Mode (simulate without real transactions)</span>
+                    </div>
+                    <button id="btn-view-json" class="btn btn-secondary">View JSON Config</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permission Center -->
+        <div class="grid">
+            <div class="card permission-center">
+                <h3>🔐 ERC-7715 Permission Center</h3>
                 <div class="permission-details">
+                    <div class="permission-item">
+                        <label>Token</label>
+                        <span id="perm-token">USDC</span>
+                    </div>
                     <div class="permission-item">
                         <label>Daily Limit</label>
                         <span id="daily-limit">$10.00</span>
@@ -281,8 +688,8 @@
                         <span id="spent-today">$0.00</span>
                     </div>
                     <div class="permission-item">
-                        <label>Remaining</label>
-                        <span id="remaining" style="color: #22c55e;">$10.00</span>
+                        <label>Days Remaining</label>
+                        <span id="days-remaining">30</span>
                     </div>
                 </div>
                 <div class="progress-container">
@@ -292,11 +699,28 @@
                 </div>
                 <div class="controls">
                     <button id="btn-connect" class="btn btn-primary">Connect MetaMask</button>
+                    <button id="btn-request-more" class="btn btn-secondary" disabled>Request More</button>
+                    <button id="btn-tighten" class="btn btn-secondary" disabled>Tighten Limit</button>
                     <button id="btn-revoke" class="btn btn-danger" disabled>Revoke Permission</button>
                 </div>
-            </div>
 
-            <!-- Stats Cards -->
+                <!-- Envio Health -->
+                <div class="envio-health">
+                    <div id="envio-dot" class="dot"></div>
+                    <div class="envio-info">
+                        <div class="title">📡 Envio HyperIndex</div>
+                        <div class="metrics">
+                            Index Delay: <span id="envio-delay">--</span>ms • 
+                            Last Update: <span id="envio-last-update">--</span> • 
+                            Status: <span id="envio-status">Connecting...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid">
             <div class="card">
                 <h3>Total Trades</h3>
                 <div id="total-trades" class="value">0</div>
@@ -336,34 +760,73 @@
         </div>
     </div>
 
+    <!-- JSON Config Modal -->
+    <div id="json-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>📋 ERC-7715 Permission Configuration</h3>
+            <pre id="json-config"></pre>
+            <button class="btn btn-secondary close-btn" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
     <script>
-        // Simulated state (would be fetched from API in production)
+        // State
         let state = {
             connected: false,
             permissionGranted: false,
-            dailyLimit: 10.00,
+            dryRunMode: false,
+            agentStatus: 'IDLE', // IDLE, RUNNING, SAFE_MODE, PERMISSION_EXPIRED
+            strategyMode: 'NORMAL', // CONSERVATIVE, NORMAL, AGGRESSIVE
+            config: {
+                dailyLimit: 10.00,
+                duration: 30,
+                token: 'USDC'
+            },
             spentToday: 0.00,
+            daysRemaining: 30,
             totalTrades: 0,
             winRate: 0,
             totalPnl: 0.00,
             openPositions: 0,
-            trades: []
+            trades: [],
+            envio: {
+                delay: 150,
+                lastUpdate: new Date(),
+                status: 'connected',
+                consecutiveFailures: 0
+            }
         };
 
         // DOM Elements
         const statusBadge = document.getElementById('connection-status');
         const statusText = document.getElementById('status-text');
+        const agentStatus = document.getElementById('agent-status');
+        const agentStatusText = document.getElementById('agent-status-text');
+        const strategyMode = document.getElementById('strategy-mode');
+        const strategyText = document.getElementById('strategy-text');
+        const dailyLimitSlider = document.getElementById('daily-limit-slider');
+        const limitDisplay = document.getElementById('limit-display');
+        const durationSelect = document.getElementById('duration-select');
+        const tokenSelect = document.getElementById('token-select');
+        const dryRunToggle = document.getElementById('dry-run-toggle');
+        const permToken = document.getElementById('perm-token');
         const dailyLimit = document.getElementById('daily-limit');
         const spentToday = document.getElementById('spent-today');
-        const remaining = document.getElementById('remaining');
+        const daysRemaining = document.getElementById('days-remaining');
         const progress = document.getElementById('allowance-progress');
         const btnConnect = document.getElementById('btn-connect');
+        const btnRequestMore = document.getElementById('btn-request-more');
+        const btnTighten = document.getElementById('btn-tighten');
         const btnRevoke = document.getElementById('btn-revoke');
         const totalTrades = document.getElementById('total-trades');
         const winRate = document.getElementById('win-rate');
         const totalPnl = document.getElementById('total-pnl');
         const openPositions = document.getElementById('open-positions');
         const tradesList = document.getElementById('trades-list');
+        const envioDot = document.getElementById('envio-dot');
+        const envioDelay = document.getElementById('envio-delay');
+        const envioLastUpdate = document.getElementById('envio-last-update');
+        const envioStatus = document.getElementById('envio-status');
 
         // Update UI
         function updateUI() {
@@ -373,28 +836,41 @@
                 statusText.textContent = 'Permission Active';
                 btnConnect.textContent = 'Connected ✓';
                 btnConnect.disabled = true;
+                btnRequestMore.disabled = false;
+                btnTighten.disabled = false;
                 btnRevoke.disabled = false;
             } else if (state.connected) {
                 statusBadge.className = 'status-badge connected';
                 statusText.textContent = 'Connected';
                 btnConnect.textContent = 'Grant Permission';
+                btnRequestMore.disabled = true;
+                btnTighten.disabled = true;
                 btnRevoke.disabled = true;
             } else {
                 statusBadge.className = 'status-badge disconnected';
                 statusText.textContent = 'Disconnected';
                 btnConnect.textContent = 'Connect MetaMask';
                 btnConnect.disabled = false;
+                btnRequestMore.disabled = true;
+                btnTighten.disabled = true;
                 btnRevoke.disabled = true;
             }
 
-            // Allowance
-            dailyLimit.textContent = `$${state.dailyLimit.toFixed(2)}`;
+            // Agent status
+            updateAgentStatus();
+
+            // Strategy mode
+            updateStrategyMode();
+
+            // Permission details
+            permToken.textContent = state.config.token;
+            dailyLimit.textContent = `$${state.config.dailyLimit.toFixed(2)}`;
             spentToday.textContent = `$${state.spentToday.toFixed(2)}`;
-            const remainingValue = state.dailyLimit - state.spentToday;
-            remaining.textContent = `$${remainingValue.toFixed(2)}`;
+            daysRemaining.textContent = state.daysRemaining;
 
             // Progress bar
-            const percent = (remainingValue / state.dailyLimit) * 100;
+            const remaining = state.config.dailyLimit - state.spentToday;
+            const percent = (remaining / state.config.dailyLimit) * 100;
             progress.style.width = `${percent}%`;
             progress.className = 'progress-fill';
             if (percent < 25) progress.classList.add('danger');
@@ -407,13 +883,16 @@
             totalPnl.style.color = state.totalPnl >= 0 ? '#22c55e' : '#ef4444';
             openPositions.textContent = state.openPositions;
 
+            // Envio health
+            updateEnvioHealth();
+
             // Trades list
             if (state.trades.length > 0) {
                 tradesList.innerHTML = state.trades.map(t => `
                     <div class="trade-item">
                         <div class="trade-info">
                             <span class="trade-market">${t.market}</span>
-                            <span class="trade-time">${t.time}</span>
+                            <span class="trade-time">${t.time}${state.dryRunMode ? ' (DRY RUN)' : ''}</span>
                         </div>
                         <span class="trade-amount ${t.pnl >= 0 ? 'positive' : 'negative'}">
                             ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}
@@ -423,7 +902,129 @@
             }
         }
 
-        // Simulate connection
+        function updateAgentStatus() {
+            const statusMap = {
+                'IDLE': { class: 'idle', icon: '⏸️' },
+                'RUNNING': { class: 'running', icon: '▶️' },
+                'SAFE_MODE': { class: 'safe-mode', icon: '⚠️' },
+                'PERMISSION_EXPIRED': { class: 'expired', icon: '❌' }
+            };
+
+            const { class: statusClass, icon } = statusMap[state.agentStatus] || statusMap['IDLE'];
+            agentStatus.className = `agent-status ${statusClass}`;
+            agentStatusText.textContent = state.agentStatus.replace('_', ' ');
+            agentStatus.querySelector('span:first-child').textContent = icon;
+        }
+
+        function updateStrategyMode() {
+            const remaining = state.config.dailyLimit - state.spentToday;
+            const percent = (remaining / state.config.dailyLimit) * 100;
+
+            if (percent < 30) {
+                state.strategyMode = 'CONSERVATIVE';
+            } else if (percent > 70) {
+                state.strategyMode = 'AGGRESSIVE';
+            } else {
+                state.strategyMode = 'NORMAL';
+            }
+
+            const modeMap = {
+                'CONSERVATIVE': { class: 'conservative', icon: '🛡️' },
+                'NORMAL': { class: 'normal', icon: '📊' },
+                'AGGRESSIVE': { class: 'aggressive', icon: '🚀' }
+            };
+
+            const { class: modeClass, icon } = modeMap[state.strategyMode];
+            strategyMode.className = `strategy-badge ${modeClass}`;
+            strategyText.textContent = state.strategyMode;
+            strategyMode.querySelector('span:first-child').textContent = icon;
+        }
+
+        function updateEnvioHealth() {
+            if (state.envio.status === 'connected') {
+                envioDot.className = state.envio.delay > 1000 ? 'dot delayed' : 'dot';
+                envioStatus.textContent = 'Connected';
+                envioStatus.style.color = '#22c55e';
+            } else {
+                envioDot.className = 'dot offline';
+                envioStatus.textContent = 'Disconnected';
+                envioStatus.style.color = '#ef4444';
+            }
+
+            envioDelay.textContent = state.envio.delay;
+            envioLastUpdate.textContent = formatTime(state.envio.lastUpdate);
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString();
+        }
+
+        // Generate JSON config
+        function generateJsonConfig() {
+            return JSON.stringify({
+                "erc7715:permission": {
+                    "type": "spend",
+                    "token": {
+                        "symbol": state.config.token,
+                        "address": state.config.token === "USDC" 
+                            ? "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+                            : "0x..."
+                    },
+                    "limit": {
+                        "amount": state.config.dailyLimit,
+                        "period": "day"
+                    },
+                    "duration": {
+                        "days": state.config.duration
+                    },
+                    "scope": {
+                        "protocol": "polymarket",
+                        "adapter": "0xPolySharkAdapter..."
+                    },
+                    "metadata": {
+                        "title": "PolyShark Trading Permission",
+                        "description": `PolyShark may automatically trade up to ${state.config.dailyLimit} ${state.config.token} per day on your behalf for ${state.config.duration} days.`,
+                        "dryRun": state.dryRunMode
+                    }
+                }
+            }, null, 2);
+        }
+
+        function showJsonModal() {
+            document.getElementById('json-config').textContent = generateJsonConfig();
+            document.getElementById('json-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('json-modal').classList.remove('active');
+        }
+
+        // Event Listeners
+        dailyLimitSlider.addEventListener('input', (e) => {
+            state.config.dailyLimit = parseFloat(e.target.value);
+            limitDisplay.textContent = e.target.value;
+            updateUI();
+        });
+
+        durationSelect.addEventListener('change', (e) => {
+            state.config.duration = parseInt(e.target.value);
+            state.daysRemaining = state.config.duration;
+            updateUI();
+        });
+
+        tokenSelect.addEventListener('change', (e) => {
+            state.config.token = e.target.value;
+            updateUI();
+        });
+
+        dryRunToggle.addEventListener('click', () => {
+            state.dryRunMode = !state.dryRunMode;
+            dryRunToggle.classList.toggle('active', state.dryRunMode);
+            updateUI();
+        });
+
+        document.getElementById('btn-view-json').addEventListener('click', showJsonModal);
+
         btnConnect.addEventListener('click', async () => {
             if (!state.connected) {
                 btnConnect.textContent = 'Connecting...';
@@ -434,42 +1035,88 @@
                 btnConnect.textContent = 'Requesting...';
                 await new Promise(r => setTimeout(r, 1500));
                 state.permissionGranted = true;
+                state.agentStatus = 'RUNNING';
+                state.daysRemaining = state.config.duration;
             }
             updateUI();
         });
 
-        // Simulate revoke
+        btnRequestMore.addEventListener('click', async () => {
+            const newLimit = state.config.dailyLimit + 5;
+            if (confirm(`Request to increase daily limit to $${newLimit}?`)) {
+                state.config.dailyLimit = newLimit;
+                dailyLimitSlider.value = newLimit;
+                limitDisplay.textContent = newLimit;
+                updateUI();
+            }
+        });
+
+        btnTighten.addEventListener('click', async () => {
+            const newLimit = Math.max(5, state.config.dailyLimit - 5);
+            if (confirm(`Reduce daily limit to $${newLimit}?`)) {
+                state.config.dailyLimit = newLimit;
+                dailyLimitSlider.value = newLimit;
+                limitDisplay.textContent = newLimit;
+                updateUI();
+            }
+        });
+
         btnRevoke.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to revoke the permission?')) {
+            if (confirm('Are you sure you want to revoke the permission? The agent will stop trading immediately.')) {
                 state.permissionGranted = false;
                 state.spentToday = 0;
+                state.agentStatus = 'IDLE';
                 updateUI();
+            }
+        });
+
+        // Close modal on overlay click
+        document.getElementById('json-modal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeModal();
             }
         });
 
         // Simulate live updates
         setInterval(() => {
-            if (state.permissionGranted && Math.random() > 0.7) {
-                // Simulate a trade
+            // Simulate Envio updates
+            state.envio.delay = Math.floor(100 + Math.random() * 200);
+            state.envio.lastUpdate = new Date();
+
+            // Simulate trades when permission is active
+            if (state.permissionGranted && state.agentStatus === 'RUNNING' && Math.random() > 0.7) {
                 const tradeAmount = Math.random() * 2;
                 const pnl = (Math.random() - 0.4) * 0.5;
                 
-                if (state.spentToday + tradeAmount <= state.dailyLimit) {
-                    state.spentToday += tradeAmount;
+                if (state.spentToday + tradeAmount <= state.config.dailyLimit) {
+                    if (!state.dryRunMode) {
+                        state.spentToday += tradeAmount;
+                    }
                     state.totalTrades++;
                     state.totalPnl += pnl;
-                    if (pnl > 0) state.winRate = Math.round((state.winRate * (state.totalTrades - 1) + 100) / state.totalTrades);
+                    if (pnl > 0) {
+                        state.winRate = Math.round((state.winRate * (state.totalTrades - 1) + 100) / state.totalTrades);
+                    }
                     
+                    const markets = ['Trump 2024', 'Bitcoin > 100k', 'Fed Rate Cut', 'ETH Flip BTC', 'AI Regulation'];
                     state.trades.unshift({
-                        market: `Market ${Math.floor(Math.random() * 1000)}`,
+                        market: markets[Math.floor(Math.random() * markets.length)],
                         time: new Date().toLocaleTimeString(),
                         pnl: pnl
                     });
                     
                     if (state.trades.length > 10) state.trades.pop();
-                    updateUI();
                 }
             }
+
+            // Check for safe mode conditions
+            if (state.envio.delay > 5000) {
+                state.agentStatus = 'SAFE_MODE';
+            } else if (state.permissionGranted && state.daysRemaining <= 0) {
+                state.agentStatus = 'PERMISSION_EXPIRED';
+            }
+
+            updateUI();
         }, 3000);
 
         // Initial render
