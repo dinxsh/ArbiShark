@@ -1,3 +1,23 @@
+use async_trait::async_trait;
+use crate::market_client::MarketClient;
+#[async_trait]
+impl MarketClient for MarketDataProvider {
+
+    async fn get_markets(&self) -> Result<Vec<Market>, Box<dyn Error + Send + Sync>> {
+        let markets = self.fetch_markets().await.map_err(Box::<dyn Error + Send + Sync>::from)?;
+        Ok(markets)
+    }
+
+    async fn get_order_book(&self, token_id: &str) -> Result<OrderBook, Box<dyn Error + Send + Sync>> {
+        let ob = self.fetch_order_book(token_id).await.map_err(Box::<dyn Error + Send + Sync>::from)?;
+        Ok(ob)
+    }
+
+    async fn stream_quotes(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        // Not implemented
+        Ok(())
+    }
+}
 use crate::types::{Market, OrderBook, PriceLevel};
 use std::error::Error;
 use serde_json::Value;
@@ -19,7 +39,7 @@ impl MarketDataProvider {
     }
 
     /// Fetch all active markets from Gamma API
-    pub async fn fetch_markets(&self) -> Result<Vec<Market>, Box<dyn Error>> {
+    pub async fn fetch_markets(&self) -> Result<Vec<Market>, Box<dyn Error + Send + Sync>> {
         println!("🌐 Fetching LIVE market data from Gamma API...");
         let resp = self.client.get(&self.gamma_url).send().await?.text().await?;
         let json: Value = serde_json::from_str(&resp)?;
@@ -131,7 +151,7 @@ impl MarketDataProvider {
     }
 
     /// Fetch order book for a market from CLOB API
-    pub async fn fetch_order_book(&self, token_id: &str) -> Result<OrderBook, Box<dyn Error>> {
+    pub async fn fetch_order_book(&self, token_id: &str) -> Result<OrderBook, Box<dyn Error + Send + Sync>> {
         let url = format!("{}?token_id={}", self.clob_url, token_id);
         let resp = self.client.get(&url).send().await?.text().await?;
         let json: Value = serde_json::from_str(&resp)?;

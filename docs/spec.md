@@ -1,6 +1,6 @@
-# 🦈 PolyShark — Technical Specification
+# 🦈 ArbiShark — Technical Specification
 
-Detailed breakdown of all structs, traits, implementations, and functions for each module.
+Detailed breakdown of all structs, traits, implementations, and functions for each module. ArbiShark is Arbitrum-first; Polymarket is referenced as a CLOB API pattern example.
 
 ---
 

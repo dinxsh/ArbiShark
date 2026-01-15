@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦈 PolyShark Dashboard</title>
+    <title>ArbiShark - Live Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -13,500 +12,324 @@
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
             min-height: 100vh;
-            color: #e0e0e0;
+            padding: 20px;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 2rem;
         }
 
-        header {
+        .header {
             text-align: center;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 40px;
         }
 
-        header h1 {
-            font-size: 2.5rem;
-            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
-
-        header p {
-            color: #94a3b8;
-            font-size: 1rem;
+            margin-bottom: 10px;
         }
 
         .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
+            display: inline-block;
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-top: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
         }
 
-        .status-badge.connected {
+        .status-active {
             background: rgba(34, 197, 94, 0.2);
             color: #22c55e;
-            border: 1px solid rgba(34, 197, 94, 0.3);
+            border: 1px solid #22c55e;
         }
 
-        .status-badge.disconnected {
+        .status-safe-mode {
             background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            border: 1px solid #ef4444;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(30, 41, 59, 0.8);
             backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .card h3 {
-            color: #94a3b8;
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
             font-size: 0.875rem;
-            font-weight: 500;
+            color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 0.75rem;
+            margin-bottom: 12px;
         }
 
-        .card .value {
+        .card-value {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #fff;
+            margin-bottom: 8px;
         }
 
-        .card .value.money::before {
-            content: '$';
+        .card-change {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .positive {
             color: #22c55e;
         }
 
-        .card .subtext {
-            color: #64748b;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
+        .negative {
+            color: #ef4444;
         }
 
-        .progress-container {
-            margin-top: 1rem;
+        .chart-container {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .trade-history {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .trade-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .trade-row:last-child {
+            border-bottom: none;
         }
 
         .progress-bar {
+            width: 100%;
             height: 8px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(148, 163, 184, 0.2);
             border-radius: 4px;
             overflow: hidden;
+            margin-top: 12px;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #22c55e, #16a34a);
-            border-radius: 4px;
+            background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
             transition: width 0.3s ease;
         }
 
-        .progress-fill.warning {
-            background: linear-gradient(90deg, #f59e0b, #d97706);
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
-        .progress-fill.danger {
-            background: linear-gradient(90deg, #ef4444, #dc2626);
-        }
-
-        .trades-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .trade-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .trade-item .trade-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .trade-item .trade-market {
-            font-weight: 500;
-            color: #fff;
-        }
-
-        .trade-item .trade-time {
-            font-size: 0.75rem;
-            color: #64748b;
-        }
-
-        .trade-item .trade-amount {
-            font-weight: 600;
-        }
-
-        .trade-item .trade-amount.positive {
-            color: #22c55e;
-        }
-
-        .trade-item .trade-amount.negative {
-            color: #ef4444;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-            font-size: 0.875rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #7c3aed, #6366f1);
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-        }
-
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .btn-danger:hover {
-            background: rgba(239, 68, 68, 0.3);
-        }
-
-        .permission-card {
-            grid-column: span 2;
-        }
-
-        .permission-details {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .permission-item {
-            text-align: center;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
-        }
-
-        .permission-item label {
-            display: block;
-            color: #64748b;
-            font-size: 0.75rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .permission-item span {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .controls {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        @media (max-width: 768px) {
-            .permission-card {
-                grid-column: span 1;
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
             }
-
-            .permission-details {
-                grid-template-columns: 1fr;
+            50% {
+                opacity: 0.5;
             }
         }
     </style>
 </head>
-
 <body>
     <div class="container">
-        <header>
-            <h1>🦈 PolyShark Dashboard</h1>
-            <p>Permissioned Autonomous Trading Agent</p>
-            <div id="connection-status" class="status-badge disconnected">
-                <span class="dot">●</span>
-                <span id="status-text">Disconnected</span>
-            </div>
-        </header>
+        <div class="header">
+            <h1>🦈 ArbiShark</h1>
+            <span class="status-badge status-active pulse" id="status-badge">● ACTIVE</span>
+        </div>
 
         <div class="grid">
-            <!-- Permission Card -->
-            <div class="card permission-card">
-                <h3>ERC-7715 Permission Status</h3>
-                <div class="permission-details">
-                    <div class="permission-item">
-                        <label>Daily Limit</label>
-                        <span id="daily-limit">$10.00</span>
-                    </div>
-                    <div class="permission-item">
-                        <label>Spent Today</label>
-                        <span id="spent-today">$0.00</span>
-                    </div>
-                    <div class="permission-item">
-                        <label>Remaining</label>
-                        <span id="remaining" style="color: #22c55e;">$10.00</span>
-                    </div>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div id="allowance-progress" class="progress-fill" style="width: 100%;"></div>
-                    </div>
-                </div>
-                <div class="controls">
-                    <button id="btn-connect" class="btn btn-primary">Connect MetaMask</button>
-                    <button id="btn-revoke" class="btn btn-danger" disabled>Revoke Permission</button>
+            <div class="card">
+                <div class="card-title">Total PnL</div>
+                <div class="card-value positive" id="total-pnl">$0.00</div>
+                <div class="card-change positive" id="pnl-change">
+                    ↑ $0.00 today
                 </div>
             </div>
 
-            <!-- Stats Cards -->
             <div class="card">
-                <h3>Total Trades</h3>
-                <div id="total-trades" class="value">0</div>
-                <div class="subtext">Since permission granted</div>
+                <div class="card-title">Trades Today</div>
+                <div class="card-value" id="trades-today">0</div>
+                <div class="card-change">
+                    Win Rate: <span id="win-rate">0%</span>
+                </div>
             </div>
 
             <div class="card">
-                <h3>Win Rate</h3>
-                <div id="win-rate" class="value">0%</div>
-                <div class="subtext">Profitable trades</div>
+                <div class="card-title">Daily Allowance</div>
+                <div class="card-value" id="daily-spent">$0.00</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="allowance-progress" style="width: 0%"></div>
+                </div>
+                <div class="card-change" style="margin-top: 8px;">
+                    <span id="remaining-allowance">$10.00</span> remaining
+                </div>
             </div>
 
             <div class="card">
-                <h3>Total PnL</h3>
-                <div id="total-pnl" class="value money">0.00</div>
-                <div class="subtext">Net profit/loss</div>
+                <div class="card-title">Strategy Mode</div>
+                <div class="card-value" id="strategy-mode" style="font-size: 1.5rem;">Normal</div>
+                <div class="card-change">
+                    Envio Latency: <span id="envio-latency">0ms</span>
+                </div>
             </div>
 
             <div class="card">
-                <h3>Open Positions</h3>
-                <div id="open-positions" class="value">0</div>
-                <div class="subtext">Active trades</div>
+                <div class="card-title">Gas Savings</div>
+                <div class="card-value positive" id="gas-saved">$0.00</div>
+                <div class="card-change">
+                    vs Ethereum L1
+                </div>
             </div>
-        </div>
 
-        <!-- Recent Trades -->
-        <div class="card">
-            <h3>Recent Trades</h3>
-            <div id="trades-list" class="trades-list">
-                <div class="trade-item">
-                    <div class="trade-info">
-                        <span class="trade-market">Waiting for trades...</span>
-                        <span class="trade-time">—</span>
-                    </div>
+            <div class="card">
+                <div class="card-title">Uptime</div>
+                <div class="card-value" id="uptime">0h 0m</div>
+                <div class="card-change">
+                    Version: <span id="version">1.0.0</span>
                 </div>
             </div>
         </div>
 
-        <script>
-            const API_URL = 'http://localhost:3030/api';
-            let currentState = { permissionActive: false, useRealPermissions: false };
+        <div class="chart-container">
+            <h3 style="margin-bottom: 20px;">Performance Chart</h3>
+            <canvas id="performance-chart" width="800" height="300"></canvas>
+        </div>
 
-            // DOM Elements
-            const statusBadge = document.getElementById('connection-status');
-            const statusText = document.getElementById('status-text');
-            const dailyLimit = document.getElementById('daily-limit');
-            const spentToday = document.getElementById('spent-today');
-            const remaining = document.getElementById('remaining');
-            const progress = document.getElementById('allowance-progress');
-            const btnConnect = document.getElementById('btn-connect');
-            const btnRevoke = document.getElementById('btn-revoke');
+        <div class="trade-history">
+            <h3 style="margin-bottom: 20px;">Recent Trades</h3>
+            <div id="trade-list">
+                <div class="trade-row" style="color: #64748b;">
+                    <span>No trades yet...</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // Add Toggle UI
-            const toggleContainer = document.createElement('div');
-            toggleContainer.style.marginTop = '1rem';
-            toggleContainer.style.display = 'flex';
-            toggleContainer.style.alignItems = 'center';
-            toggleContainer.style.gap = '0.5rem';
-            toggleContainer.innerHTML = `
-            <input type="checkbox" id="real-perm-toggle">
-            <label for="real-perm-toggle" style="color: #94a3b8; font-size: 0.875rem;">
-                Enable Real ERC-7715 Calls (Experimental)
-            </label>
-        `;
-            document.querySelector('.controls').parentElement.appendChild(toggleContainer);
+    <script>
+        // WebSocket connection
+        const ws = new WebSocket('ws://localhost:3000/ws');
 
-            const realPermToggle = document.getElementById('real-perm-toggle');
-            realPermToggle.addEventListener('change', (e) => {
-                currentState.useRealPermissions = e.target.checked;
-            });
+        ws.onopen = () => {
+            console.log('✅ Connected to ArbiShark');
+        };
 
-            // Poll API for updates
-            async function fetchStats() {
-                try {
-                    const res = await fetch(`${API_URL}/stats`);
-                    const stats = await res.json();
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            updateDashboard(data);
+        };
 
-                    // Update UI from stats
-                    if (stats.connected) {
-                        statusBadge.className = 'status-badge connected';
-                        statusText.textContent = stats.permission_active ? 'Agent Running' : 'Agent Idle (Waiting for Permission)';
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            document.getElementById('status-badge').textContent = '● DISCONNECTED';
+            document.getElementById('status-badge').className = 'status-badge status-safe-mode';
+        };
 
-                        if (stats.permission_active && !currentState.permissionActive) {
-                            btnConnect.textContent = 'Permission Active';
-                            btnConnect.disabled = true;
-                            btnRevoke.disabled = false;
-                            realPermToggle.disabled = true; // Lock toggle
-                            currentState.permissionActive = true;
-                        }
+        function updateDashboard(metrics) {
+            // Update PnL
+            const pnlElement = document.getElementById('total-pnl');
+            pnlElement.textContent = `$${metrics.total_pnl.toFixed(2)}`;
+            pnlElement.className = `card-value ${metrics.total_pnl >= 0 ? 'positive' : 'negative'}`;
 
-                        // Update values
-                        dailyLimit.textContent = `$${stats.daily_limit.toFixed(2)}`;
-                        spentToday.textContent = `$${stats.spent_today.toFixed(2)}`;
-                        const rem = stats.daily_limit - stats.spent_today;
-                        remaining.textContent = `$${rem.toFixed(2)}`;
+            document.getElementById('pnl-change').innerHTML = `
+                ${metrics.daily_pnl >= 0 ? '↑' : '↓'} $${Math.abs(metrics.daily_pnl).toFixed(2)} today
+            `;
 
-                        // Progress bar
-                        const percent = (rem / stats.daily_limit) * 100;
-                        progress.style.width = `${percent}%`;
-                        progress.className = 'progress-fill';
-                        if (percent < 25) progress.classList.add('danger');
-                        else if (percent < 50) progress.classList.add('warning');
-                        else progress.classList.remove('danger', 'warning');
+            // Update trades
+            document.getElementById('trades-today').textContent = metrics.trades_today;
+            document.getElementById('win-rate').textContent = `${(metrics.win_rate * 100).toFixed(1)}%`;
 
-                        // Stats
-                        document.getElementById('total-trades').textContent = stats.total_trades;
-                        document.getElementById('win-rate').textContent = `${stats.win_rate.toFixed(1)}%`;
-                        document.getElementById('total-pnl').textContent = stats.total_pnl.toFixed(2);
-                        document.getElementById('total-pnl').style.color = stats.total_pnl >= 0 ? '#22c55e' : '#ef4444';
-                        document.getElementById('open-positions').textContent = stats.open_positions;
-                    }
-                } catch (e) {
-                    // console.error('API Error:', e); // Silence poll errors
-                    statusBadge.className = 'status-badge disconnected';
-                    statusText.textContent = 'Agent Offline';
-                }
+            // Update allowance
+            document.getElementById('daily-spent').textContent = `$${metrics.daily_spent.toFixed(2)}`;
+            document.getElementById('remaining-allowance').textContent = `$${metrics.remaining_allowance.toFixed(2)}`;
+            
+            const allowancePercent = (metrics.daily_spent / metrics.daily_limit) * 100;
+            document.getElementById('allowance-progress').style.width = `${Math.min(allowancePercent, 100)}%`;
+
+            // Update strategy mode
+            document.getElementById('strategy-mode').textContent = metrics.strategy_mode;
+            document.getElementById('envio-latency').textContent = `${metrics.envio_latency_ms}ms`;
+
+            // Update gas savings
+            document.getElementById('gas-saved').textContent = `$${metrics.gas_saved_vs_l1.toFixed(2)}`;
+
+            // Update uptime
+            const hours = Math.floor(metrics.uptime_seconds / 3600);
+            const minutes = Math.floor((metrics.uptime_seconds % 3600) / 60);
+            document.getElementById('uptime').textContent = `${hours}h ${minutes}m`;
+            document.getElementById('version').textContent = metrics.version;
+
+            // Update status
+            const statusBadge = document.getElementById('status-badge');
+            if (metrics.is_safe_mode) {
+                statusBadge.textContent = '● SAFE MODE';
+                statusBadge.className = 'status-badge status-safe-mode pulse';
+            } else {
+                statusBadge.textContent = '● ACTIVE';
+                statusBadge.className = 'status-badge status-active pulse';
             }
+        }
 
-            // Connect MetaMask & Request Permission
-            btnConnect.addEventListener('click', async () => {
-                if (!window.ethereum) {
-                    alert('Please install MetaMask!');
-                    return;
-                }
+        function addTrade(trade) {
+            const tradeList = document.getElementById('trade-list');
+            const tradeRow = document.createElement('div');
+            tradeRow.className = 'trade-row';
+            
+            const time = new Date(trade.timestamp).toLocaleTimeString();
+            const pnlClass = trade.pnl >= 0 ? 'positive' : 'negative';
+            
+            tradeRow.innerHTML = `
+                <span>${time}</span>
+                <span>${trade.market_id}</span>
+                <span class="${pnlClass}">${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}</span>
+            `;
+            
+            tradeList.insertBefore(tradeRow, tradeList.firstChild);
+            
+            // Keep only last 10 trades
+            while (tradeList.children.length > 10) {
+                tradeList.removeChild(tradeList.lastChild);
+            }
+        }
 
-                try {
-                    btnConnect.textContent = 'Requesting...';
-
-                    // 1. Request accounts
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-                    // 2. Request ERC-7715 Permission
-                    const permission = {
-                        "erc7715:permission": {
-                            type: "spend",
-                            token: {
-                                symbol: "USDC",
-                                address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
-                            },
-                            limit: {
-                                amount: 10.0,
-                                period: "day"
-                            },
-                            duration: {
-                                days: 30
-                            },
-                            scope: {
-                                protocol: "polymarket"
-                            }
-                        }
-                    };
-
-                    let grant;
-
-                    if (currentState.useRealPermissions) {
-                        console.log('Attemping REAL ERC-7715 call...');
-                        try {
-                            const response = await window.ethereum.request({
-                                method: 'wallet_requestPermissions',
-                                params: [permission]
-                            });
-                            grant = response[0]; // Assuming array response
-                            console.log('Real Grant Received:', grant);
-                        } catch (err) {
-                            console.error('Real call failed:', err);
-                            alert('Real ERC-7715 call failed. Falling back to Mock?');
-                            throw err;
-                        }
-                    } else {
-                        console.log('Using MOCK permissions (Demo Mode)');
-                        await new Promise(r => setTimeout(r, 1000));
-                        grant = {
-                            permission_id: `perm_mock_${Date.now()}`,
-                            token: "USDC",
-                            daily_limit: 10.0,
-                            spent_today: 0.0,
-                            expires_at: Math.floor(Date.now() / 1000) + (30 * 86400),
-                            granted_at: Math.floor(Date.now() / 1000),
-                            revoked: false
-                        };
-                    }
-
-                    // 3. Send to Rust Agent
-                    const res = await fetch(`${API_URL}/permission`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(grant)
-                    });
-
-                    if (res.ok) {
-                        alert('Permission granted and sent to Agent!');
-                        fetchStats();
-                    } else {
-                        alert('Failed to update Agent.');
-                    }
-
-                } catch (e) {
-                    console.error(e);
-                    alert('Connection failed: ' + e.message);
-                    btnConnect.textContent = 'Connect MetaMask';
-                }
-            });
-
-            // Start polling
-            setInterval(fetchStats, 1000);
-            fetchStats();
-        </script>
+        // Fetch initial data
+        fetch('http://localhost:3000/api/metrics')
+            .then(res => res.json())
+            .then(data => updateDashboard(data))
+            .catch(err => console.error('Failed to fetch initial data:', err));
+    </script>
 </body>
-
 </html>

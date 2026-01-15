@@ -133,6 +133,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
+name = "arbishark"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "colored",
+ "futures-util",
+ "hex",
+ "once_cell",
+ "rand 0.8.5",
+ "rand_distr",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "solana-client",
+ "solana-sdk",
+ "tokio",
+ "tokio-test",
+ "tokio-tungstenite 0.28.0",
+ "toml 0.8.23",
+ "tracing",
+ "tracing-subscriber",
+ "warp",
+]
+
+[[package]]
 name = "ark-bn254"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2609,28 +2634,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
-name = "polyshark"
-version = "0.1.0"
-dependencies = [
- "colored",
- "futures-util",
- "hex",
- "rand 0.8.5",
- "rand_distr",
- "reqwest",
- "serde",
- "serde_json",
- "solana-client",
- "solana-sdk",
- "tokio",
- "tokio-tungstenite 0.28.0",
- "toml 0.8.23",
- "tracing",
- "tracing-subscriber",
- "warp",
-]
-
-[[package]]
 name = "polyval"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4782,6 +4785,17 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "tokio-test"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f6d24790a10a7af737693a3e8f1d03faef7e6ca0cc99aae5066f533766de545"
+dependencies = [
+ "futures-core",
+ "tokio",
+ "tokio-stream",
 ]
 
 [[package]]

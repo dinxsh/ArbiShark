@@ -4,7 +4,7 @@
 
 use crate::types::Side;
 use crate::wallet::Wallet;
-use crate::market::MarketDataProvider;
+use crate::market_client::MarketClient;
 use crate::arb::ArbitrageDetector;
 use crate::execution::ExecutionEngine;
 use crate::config::SafetyConfig;
@@ -23,32 +23,28 @@ pub enum EngineStatus {
     Stopped,
 }
 
-#[allow(dead_code)]
-pub struct TradingEngine {
+
+pub struct TradingEngine<M: MarketClient + Send + Sync> {
     pub wallet: Wallet,
-    pub market_provider: MarketDataProvider,
+    pub market_client: M,
     pub detector: ArbitrageDetector,
     pub execution_engine: ExecutionEngine,
-    /// Current engine status
     status: EngineStatus,
-    /// Consecutive API failure count
     consecutive_failures: u32,
-    /// Safety configuration
     safety_config: SafetyConfig,
-    /// Last successful data fetch timestamp
     last_data_fetch: Option<Instant>,
 }
 
-impl TradingEngine {
+impl<M: MarketClient + Send + Sync> TradingEngine<M> {
     pub fn new(
         wallet: Wallet,
-        market_provider: MarketDataProvider,
+        market_client: M,
         detector: ArbitrageDetector,
         execution_engine: ExecutionEngine,
     ) -> Self {
         Self {
             wallet,
-            market_provider,
+            market_client,
             detector,
             execution_engine,
             status: EngineStatus::Running,
@@ -137,13 +133,10 @@ impl TradingEngine {
     /// 3. Suspends on stale data
     /// 4. All errors are caught and handled gracefully
     pub async fn tick(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        // Pre-tick safety check
         if !self.check_safety_conditions() {
-            return Ok(()); // Skip this tick, we're in a safety state
+            return Ok(());
         }
-
-        // Fetch markets with failure handling
-        let markets = match self.market_provider.fetch_markets().await {
+        let markets = match self.market_client.get_markets().await {
             Ok(m) => {
                 self.handle_success();
                 m
@@ -153,30 +146,22 @@ impl TradingEngine {
                 return Err(e);
             }
         };
-
-        // Scan for signals
         let signals = self.detector.scan(&markets);
-        
         for signal in signals {
-            // Simplified execution logic from main.rs
             if signal.recommended_side == Side::Buy {
-               // Find market
-               if let Some(market) = markets.iter().find(|m| m.id == signal.market_id) {
-                    let size_per_leg = 5.0; // Fixed for now
-
-                    // Execute on all outcomes (Buy Bundle behavior)
+                if let Some(market) = markets.iter().find(|m| m.id == signal.market_id) {
+                    let size_per_leg = 5.0;
                     for token_id in &market.clob_token_ids {
-                        match self.market_provider.fetch_order_book(token_id).await {
+                        match self.market_client.get_order_book(token_id).await {
                             Ok(book) => {
                                 self.execution_engine.execute(&book, size_per_leg, Side::Buy, &mut self.wallet);
                             }
                             Err(e) => {
-                                // Log but don't fail entire tick for single order book fetch
                                 println!("⚠️ [Engine] Order book fetch failed: {}", e);
                             }
                         }
                     }
-               }
+                }
             }
         }
         Ok(())

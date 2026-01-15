@@ -1,0 +1,14 @@
+# orbit.toml
+# Orbit agent configuration for ArbiShark
+
+[network]
+rpc_url = "https://orbit-rpc.arbitrum.io"
+indexer_url = "https://orbit-indexer.arbitrum.io"
+gas_token = "ETH"
+
+[agent]
+daily_limit_usdc = 10.0
+period = "day"
+
+[demo]
+mode = "arbitrum_demo"

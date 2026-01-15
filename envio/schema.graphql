@@ -1,0 +1,49 @@
+schema:
+  - name: Quote
+    fields:
+      - name: id
+        type: ID!
+      - name: timestamp
+        type: BigInt!
+      - name: yesPrice
+        type: BigInt!
+      - name: noPrice
+        type: BigInt!
+      - name: liquidity
+        type: BigInt!
+      - name: blockNumber
+        type: BigInt!
+      - name: blockTimestamp
+        type: BigInt!
+      - name: transactionHash
+        type: String!
+
+  - name: MarketState
+    fields:
+      - name: id
+        type: ID!
+      - name: yesPrice
+        type: BigInt!
+      - name: noPrice
+        type: BigInt!
+      - name: liquidity
+        type: BigInt!
+      - name: lastUpdate
+        type: BigInt!
+      - name: blockNumber
+        type: BigInt!
+
+  - name: MarketInfo
+    fields:
+      - name: id
+        type: ID!
+      - name: question
+        type: String!
+      - name: initialYesPrice
+        type: BigInt!
+      - name: initialNoPrice
+        type: BigInt!
+      - name: createdAt
+        type: BigInt!
+      - name: blockNumber
+        type: BigInt!

@@ -1,4 +1,6 @@
-# PolyShark Configuration
+# Mode: "arbitrum_demo" or "polymarket"
+mode = "arbitrum_demo"
+# ArbiShark Configuration
 
 [permission]
 # ERC-7715 Daily Spend Permission
@@ -44,3 +46,18 @@ max_consecutive_failures = 3     # Enter safe mode after N API failures
 safe_mode_cooldown_secs = 300    # Wait 5 minutes before retrying
 assume_zero_on_perm_error = true # Assume 0 allowance if permission query fails
 
+[arbitrum]
+# Arbitrum Network Configuration
+sepolia_rpc = "https://sepolia-rollup.arbitrum.io/rpc"
+mainnet_rpc = "https://arb1.arbitrum.io/rpc"
+sepolia_chain_id = 421614
+mainnet_chain_id = 42161
+
+# Envio HyperIndex Endpoint
+envio_endpoint = "https://indexer.bigdevenergy.link/your-project/v1/graphql"
+
+# Token Addresses (Arbitrum One)
+usdc_e_address = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
+
+# Demo Contract (to be deployed on Sepolia)
+demo_contract_address = "0x0000000000000000000000000000000000000000"

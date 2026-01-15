@@ -1,4 +1,4 @@
-//! Configuration module for PolyShark
+//! Configuration module for ArbiShark
 //! 
 //! Loads settings from config.toml instead of hardcoded values.
 
@@ -17,6 +17,10 @@ pub struct Config {
     pub strategy: StrategyConfig,
     #[serde(default)]
     pub safety: SafetyConfig,
+    #[serde(default)]
+    pub mode: Option<String>,
+    #[serde(default)]
+    pub arbitrum: Option<ArbitrumConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -107,6 +111,32 @@ impl Default for SafetyConfig {
     }
 }
 
+/// Arbitrum network configuration
+#[derive(Debug, Deserialize, Clone)]
+pub struct ArbitrumConfig {
+    pub sepolia_rpc: String,
+    pub mainnet_rpc: String,
+    pub sepolia_chain_id: u64,
+    pub mainnet_chain_id: u64,
+    pub envio_endpoint: String,
+    pub usdc_e_address: String,
+    pub demo_contract_address: String,
+}
+
+impl Default for ArbitrumConfig {
+    fn default() -> Self {
+        Self {
+            sepolia_rpc: "https://sepolia-rollup.arbitrum.io/rpc".to_string(),
+            mainnet_rpc: "https://arb1.arbitrum.io/rpc".to_string(),
+            sepolia_chain_id: 421614,
+            mainnet_chain_id: 42161,
+            envio_endpoint: "https://indexer.bigdevenergy.link/your-project/v1/graphql".to_string(),
+            usdc_e_address: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8".to_string(),
+            demo_contract_address: "0x0000000000000000000000000000000000000000".to_string(),
+        }
+    }
+}
+
 impl Config {
     /// Load configuration from config.toml
     pub fn load() -> Result<Self, ConfigError> {
@@ -154,7 +184,24 @@ impl Config {
             },
             strategy: StrategyConfig::default(),
             safety: SafetyConfig::default(),
+            mode: Some("arbitrum_demo".to_string()),
+            arbitrum: Some(ArbitrumConfig::default()),
         }
+    }
+
+    /// Validate configuration
+    pub fn validate(&self) -> Result<(), String> {
+        if self.permission.daily_limit_usdc <= 0.0 {
+            return Err("daily_limit_usdc must be positive".to_string());
+        }
+        
+        if let Some(mode) = &self.mode {
+            if mode == "arbitrum_demo" && self.arbitrum.is_none() {
+                return Err("arbitrum config required for arbitrum_demo mode".to_string());
+            }
+        }
+        
+        Ok(())
     }
 }
 

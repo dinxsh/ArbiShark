@@ -1,0 +1,20 @@
+name: ArbiShark Demo Market
+description: Demo prediction market for ArbiShark on Arbitrum Sepolia
+networks:
+  - id: 421614  # Arbitrum Sepolia
+    start_block: 0  # Will be updated after deployment
+    contracts:
+      - name: DemoMarket
+        address:
+          - 0x0000000000000000000000000000000000000000  # Update after deployment
+        handler: src/EventHandlers.ts
+        events:
+          - event: QuoteUpdated(uint256 indexed timestamp, uint256 yesPrice, uint256 noPrice, uint256 liquidity)
+          - event: MarketCreated(string question, uint256 yesPrice, uint256 noPrice)
+
+field_selection:
+  transaction_fields:
+    - "from"
+    - "to"
+    - "hash"
+    - "transactionIndex"

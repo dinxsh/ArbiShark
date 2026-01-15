@@ -1,6 +1,6 @@
-# 📐 PolyShark — Mathematical Foundations & Formulas
+# 📐 ArbiShark — Mathematical Foundations & Formulas
 
-All math concepts and formulas used in the PolyShark arbitrage bot.
+All math concepts and formulas used in the ArbiShark arbitrage bot. ArbiShark is Arbitrum-first; Polymarket is referenced as a CLOB API pattern example.
 
 ---
 
