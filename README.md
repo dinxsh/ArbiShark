@@ -245,30 +245,10 @@ ArbiShark is open-source (MIT License). Contributions welcome!
 
 ```bash
 # Fork and improve
-git clone https://github.com/yourusername/arbishark
+git clone https://github.com/dinxsh/arbishark
 # Make changes
 # Submit PR
 ```
-
----
-
-## 📞 Contact
-
-**Built for**: Arbitrum APAC Mini Hackathon  
-**Team**: [Your Name]  
-**Email**: [Your Email]  
-**GitHub**: [Your Username]
-
----
-
-## 🙏 Acknowledgments
-
-- **Arbitrum** - Scalable L2 infrastructure
-- **MetaMask** - ERC-7715 Delegation Toolkit
-- **Envio** - Low-latency HyperIndex
-- **Community** - Feedback and support
-
----
 
 **ArbiShark**: Building safe, autonomous agents for Arbitrum 🦈
 
