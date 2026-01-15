@@ -16,7 +16,7 @@
 
 ```bash
 # 1. Clone and setup
-git clone https://github.com/yourusername/arbishark
+git clone https://github.com/dinxsh/arbishark
 cd arbishark
 cp .env.example .env  # Add your PRIVATE_KEY
 
@@ -26,10 +26,6 @@ cp .env.example .env  # Add your PRIVATE_KEY
 # 3. Run agent
 cargo run --release
 ```
-
-**📺 [Demo Video](https://youtube.com/watch?v=YOUR_VIDEO_ID)** | **📊 [Live Dashboard](http://localhost:3000)**
-
----
 
 ## 💡 The Problem
 
