@@ -239,28 +239,6 @@ arbishark create my-dex-agent --protocol dex --chain arbitrum-one
 
 ---
 
-## 🚀 Roadmap
-
-### ✅ Phase 1 (Complete)
-- Arbitrum integration
-- ERC-7715 permissions
-- Envio HyperIndex
-- Production features
-
-### 🔄 Phase 2 (Next)
-- Stylus contract deployment
-- MetaMask Snap
-- Multi-DEX integration
-- Mobile app (PWA)
-
-### 📅 Phase 3 (Future)
-- Orbit chain support
-- Plugin marketplace
-- Governance token
-- Enterprise features
-
----
-
 ## 🤝 Contributing
 
 ArbiShark is open-source (MIT License). Contributions welcome!
